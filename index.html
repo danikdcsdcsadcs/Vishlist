@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Общий Вишлист: Комнаты</title>
+    <title>Общий Вишлист</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15,10 +15,11 @@
     <div id="login-screen" class="screen active">
         <div class="login-card">
             <h1>Добро пожаловать!</h1>
-            <p>Введите своё имя для входа</p>
+            <p>Войдите или придумайте логин для регистрации</p>
             <form id="login-form">
-                <input type="text" id="username-input" placeholder="Ваше имя" required autocomplete="off" maxlength="20">
-                <button type="submit" class="btn-primary">Войти</button>
+                <input type="text" id="username-input" placeholder="Логин (любые символы)" required autocomplete="off">
+                <input type="password" id="password-input" placeholder="Пароль" required autocomplete="off">
+                <button type="submit" class="btn-primary">Войти / Зарегистрироваться</button>
             </form>
         </div>
     </div>
@@ -26,7 +27,10 @@
     <div id="rooms-screen" class="screen">
         <header class="app-header">
             <div class="header-main">
-                <div class="user-greeting">Привет, <span id="rooms-user-display" class="user-badge"></span>!</div>
+                <div class="user-profile">
+                    <img id="user-avatar" class="avatar" src="" alt="Аватар">
+                    <div class="user-greeting">Привет, <span id="rooms-user-display" class="user-badge"></span>!</div>
+                </div>
                 <div class="header-actions">
                     <button id="theme-toggle-rooms" class="btn-icon">🌓</button>
                     <button id="logout-btn" class="btn-secondary">Выйти</button>
@@ -34,7 +38,6 @@
             </div>
             <div class="app-branding">
                 <h1>🏠 Ваши комнаты</h1>
-                <p class="stats-counter">Создайте новую комнату или выберите существующую</p>
             </div>
             
             <div class="admin-panel rooms-actions-grid" style="border-top: none;">
@@ -43,7 +46,7 @@
                     <button type="submit" class="btn-primary">Создать</button>
                 </form>
                 <form id="join-room-form">
-                    <input type="text" id="room-id-input" placeholder="Вставьте код комнаты (ID)..." required autocomplete="off">
+                    <input type="text" id="room-id-input" placeholder="Вставьте код (ID)..." required autocomplete="off">
                     <button type="submit" class="btn-secondary">Войти по коду</button>
                 </form>
             </div>
@@ -61,28 +64,20 @@
             <div class="header-main">
                 <button id="back-to-rooms-btn" class="btn-secondary">← К комнатам</button>
                 <div class="header-actions">
+                    <button id="toggle-chat-btn" class="btn-primary">💬 Чат</button>
                     <button id="theme-toggle-app" class="btn-icon">🌓</button>
                 </div>
             </div>
             
-           <div class="app-branding">
+            <div class="app-branding">
                 <h1>🎁 <span id="current-room-name">...</span></h1>
                 <div class="room-id-display">
                     Код для приглашения: <code id="current-room-id" title="Нажми, чтобы скопировать">...</code>
                 </div>
                 <div class="stats-counter">
-                    Всего подарков: <strong id="total-count">0</strong> | Отмечено вами: <strong id="user-count">0</strong>
+                    👥 Участников: <strong id="room-users-count">0</strong> | 
+                    🎁 Подарков: <strong id="total-count">0</strong>
                 </div>
-            </div>
-
-            <div class="filter-bar">
-                <input type="text" id="search-input" placeholder="🔍 Поиск...">
-                <select id="sort-select" class="sort-select">
-                    <option value="default">Сортировка: По умолчанию</option>
-                    <option value="rating-desc">По приоритету: Сначала важные</option>
-                    <option value="price-asc">Цена: по возрастанию</option>
-                    <option value="price-desc">Цена: по убыванию</option>
-                </select>
             </div>
 
             <div class="admin-panel">
@@ -90,7 +85,7 @@
                     <div class="form-grid">
                         <input type="text" id="gift-title-input" placeholder="Название подарка*" required autocomplete="off">
                         <input type="number" id="gift-price-input" placeholder="Цена (₽)*" required min="0" autocomplete="off">
-                        <input type="url" id="gift-image-input" placeholder="Ссылка на фото (https://...)" autocomplete="off">
+                        <input type="url" id="gift-image-input" placeholder="Ссылка на фото" autocomplete="off">
                     </div>
                     
                     <div class="rating-input-container">
@@ -103,15 +98,38 @@
                             <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="Просто прикольно">★</label>
                         </div>
                     </div>
-
                     <button type="submit" class="btn-primary btn-block">Добавить в вишлист</button>
                 </form>
             </div>
         </header>
 
-        <main class="app-main">
-            <div id="gifts-container" class="gifts-grid">
+        <main class="app-main room-layout">
+            <div class="gifts-section">
+                <div class="filter-bar" style="margin-bottom: 1rem;">
+                    <input type="text" id="search-input" placeholder="🔍 Поиск...">
+                    <select id="sort-select" class="sort-select">
+                        <option value="default">По умолчанию</option>
+                        <option value="rating-desc">Сначала важные</option>
+                        <option value="price-asc">Сначала дешевле</option>
+                        <option value="price-desc">Сначала дороже</option>
+                    </select>
                 </div>
+                <div id="gifts-container" class="gifts-grid">
+                    </div>
+            </div>
+
+            <aside id="chat-panel" class="chat-sidebar hidden-mobile">
+                <div class="chat-header">
+                    <h3>💬 Чат комнаты</h3>
+                    <button id="close-chat-btn" class="btn-icon mobile-only">✖</button>
+                </div>
+                <div id="chat-messages" class="chat-messages">
+                    </div>
+                <form id="chat-form" class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Сообщение..." required autocomplete="off">
+                    <button type="submit" class="btn-primary">➤</button>
+                </form>
+            </aside>
         </main>
     </div>
 
