@@ -1,10 +1,10 @@
-// Импорт необходимых модулей Firebase SDK из CDN
+// Импорт Firebase SDK модулей из CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 // ==========================================
 // КОНФИГУРАЦИЯ FIREBASE
-// Замените плейсхолдеры ниже вашими данными из консоли Firebase
+// Вставьте сюда свои ключи из консоли Firebase
 // ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyCS8ekWaGkhU2k7t8foHzn8I2U-zEDJUYU",
@@ -20,16 +20,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Константа роли администратора
-const ADMIN_NAME = 'admin';
-
 // Состояние приложения
 let currentUser = localStorage.getItem('wishlist_user') || '';
-let giftsData = []; // Локальный кэш данных из БД
+let giftsData = []; 
 let currentTheme = localStorage.getItem('wishlist_theme') || 'light';
 let searchQuery = '';
+let currentSort = 'default';
 
-// DOM Элементы
+// DOM элементы
 const loginScreen = document.getElementById('login-screen');
 const appScreen = document.getElementById('app-screen');
 const loginForm = document.getElementById('login-form');
@@ -37,48 +35,35 @@ const usernameInput = document.getElementById('username-input');
 const currentUserDisplay = document.getElementById('current-user-display');
 const logoutBtn = document.getElementById('logout-btn');
 const themeToggle = document.getElementById('theme-toggle');
-const adminPanel = document.getElementById('admin-panel');
 const addGiftForm = document.getElementById('add-gift-form');
 const giftTitleInput = document.getElementById('gift-title-input');
+const giftPriceInput = document.getElementById('gift-price-input');
+const giftImageInput = document.getElementById('gift-image-input');
 const giftsContainer = document.getElementById('gifts-container');
 const searchInput = document.getElementById('search-input');
+const sortSelect = document.getElementById('sort-select');
 const totalCountEl = document.getElementById('total-count');
 const userCountEl = document.getElementById('user-count');
 
-// ==========================================
-// ИНИЦИАЛИЗАЦИЯ И УПРАВЛЕНИЕ СЕССИЕЙ
-// ==========================================
-
+// Инициализация темы и экрана при старте
 function init() {
-    // Настройка темы
     document.documentElement.setAttribute('data-theme', currentTheme);
-    
-    if (currentUser) {
-        showAppScreen();
-    } else {
-        showLoginScreen();
-    }
+    if (currentUser) { showAppScreen(); } else { showLoginScreen(); }
 }
 
-// Переключение на экран авторизации
 function showLoginScreen() {
     appScreen.classList.remove('active');
     loginScreen.classList.add('active');
 }
 
-// Переключение на главный экран
 function showAppScreen() {
     loginScreen.classList.remove('active');
     appScreen.classList.add('active');
     currentUserDisplay.textContent = currentUser;
-    
-    // Теперь панель доступна всем (убрали проверку на ADMIN_NAME)
-    adminPanel.classList.remove('hidden'); 
-    
     listenToGiftsChanges();
 }
 
-// Хэндлер формы логина
+// Авторизация
 loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const name = usernameInput.value.trim();
@@ -90,63 +75,53 @@ loginForm.addEventListener('submit', (e) => {
     }
 });
 
-// Выход из аккаунта
-logoutBtn.addEventListener('logout-btn', () => {}); // Резерв
+// Выход
 logoutBtn.onclick = () => {
     localStorage.removeItem('wishlist_user');
     currentUser = '';
     showLoginScreen();
 };
 
-// Переключение цветовой темы
+// Смена темы
 themeToggle.onclick = () => {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
     localStorage.setItem('wishlist_theme', currentTheme);
 };
 
-// ==========================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ UI
-// ==========================================
-
-// Генерация уникального HSL цвета на базе строки (имени пользователя)
+// Генерация цвета из строки (для уникальных аватарок/тегов)
 function generateUserColor(username) {
     let hash = 0;
     for (let i = 0; i < username.length; i++) {
         hash = username.charCodeAt(i) + ((hash << 5) - hash);
     }
-    // Используем фиксированную насыщенность и яркость для пастельного/приятного вида
     const h = Math.abs(hash) % 360;
-    return `hsl(${h}, 65%, 50%)`;
+    return `hsl(${h}, 60%, 45%)`;
 }
 
-// Генерация эффекта конфетти
+// Конфетти
 function triggerConfetti() {
-    confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.85 }
-    });
+    confetti({ particleCount: 60, spread: 50, origin: { y: 0.8 } });
 }
 
 // ==========================================
-// РАБОТА С БАЗОЙ ДАННЫХ FIREBASE
+// БАЗА ДАННЫХ И СИНХРОНИЗАЦИЯ
 // ==========================================
 
-// Подписка на изменения данных в реальном времени
 function listenToGiftsChanges() {
     const giftsRef = ref(db, 'gifts');
     onValue(giftsRef, (snapshot) => {
         const data = snapshot.val();
         giftsData = [];
-        
         if (data) {
-            // Превращаем объект Firebase в массив
             Object.keys(data).forEach(key => {
                 giftsData.push({
                     id: key,
                     title: data[key].title,
-                    buyers: data[key].buyers || {} // Объект вида { username: true }
+                    price: Number(data[key].price) || 0,
+                    imageUrl: data[key].imageUrl || '',
+                    createdBy: data[key].createdBy || 'Аноним',
+                    buyers: data[key].buyers || {}
                 });
             });
         }
@@ -154,141 +129,132 @@ function listenToGiftsChanges() {
     });
 }
 
-// Добавление нового подарка
+// Добавление подарка
 addGiftForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    
     const title = giftTitleInput.value.trim();
-    const imageUrlInput = document.getElementById('gift-image-input');
-    const imageUrl = imageUrlInput.value.trim();
-    
-    if (title) {
+    const price = giftPriceInput.value.trim();
+    const imageUrl = giftImageInput.value.trim();
+
+    if (title && price) {
         const giftsRef = ref(db, 'gifts');
         const newGiftRef = push(giftsRef);
         set(newGiftRef, {
             title: title,
-            imageUrl: imageUrl || null, // Сохраняем ссылку, если она есть
+            price: Number(price),
+            imageUrl: imageUrl || null,
+            createdBy: currentUser, // Запись автора
             buyers: {}
         }).then(() => {
             giftTitleInput.value = '';
-            imageUrlInput.value = ''; // Очищаем поле с ссылкой
-        }).catch(err => console.error("Ошибка добавления:", err));
+            giftPriceInput.value = '';
+            giftImageInput.value = '';
+        }).catch(err => console.error(err));
     }
 });
-// Удаление подарка (Только admin)
-// Удаление подарка 
+
+// Удаление
 function deleteGift(id, cardElement) {
-    // Убрали проверку if (currentUser !== ADMIN_NAME) return;
-    
     cardElement.classList.add('fade-out');
     setTimeout(() => {
-        const giftRef = ref(db, `gifts/${id}`);
-        remove(giftRef);
-    }, 300);
+        remove(ref(db, `gifts/${id}`));
+    }, 250);
 }
 
-// Переключение чекбокса "Купил"
+// Переключение галочки покупки
 function toggleBuyGift(id, isChecked) {
-    // Заменяем недопустимые для ключей Firebase символы в имени пользователя
     const safeUsername = currentUser.replace(/[\.\$\#\[\]\/]/g, "_");
     const buyerRef = ref(db, `gifts/${id}/buyers/${safeUsername}`);
-    
     if (isChecked) {
-        set(buyerRef, true).then(() => {
-            triggerConfetti();
-        });
+        set(buyerRef, true).then(() => triggerConfetti());
     } else {
         remove(buyerRef);
     }
 }
 
-// Изменение названия по двойному клику (Только admin)
-function updateGiftTitle(id, newTitle) {
-    if (!newTitle.trim()) return;
-    const titleRef = ref(db, `gifts/${id}`);
-    update(titleRef, { title: newTitle.trim() });
-}
-
-// ==========================================
-// ОТРЕНДЕРИТЬ СПИСОК (ЛОГИКА И СОРТИРОВКА)
-// ==========================================
-
-// Поиск по списку
+// Сортировка и фильтрация (Excel-подобная логика)
 searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.toLowerCase();
     renderGifts();
 });
 
+sortSelect.addEventListener('change', (e) => {
+    currentSort = e.target.value;
+    renderGifts();
+});
+
+// ==========================================
+// РЕНДЕРИНГ ЭЛЕМЕНТОВ
+// ==========================================
 function renderGifts() {
     giftsContainer.innerHTML = '';
     
-    // Сортировка и фильтрация
-    // 1. Фильтр по поисковому запросу
-    let filteredGifts = giftsData.filter(gift => gift.title.toLowerCase().includes(searchQuery));
+    // 1. Поиск/Фильтрация
+    let processedGifts = giftsData.filter(gift => gift.title.toLowerCase().includes(searchQuery));
     
-    // 2. Сортировка: Сначала неотмеченные текущим пользователем, потом отмеченные
-    filteredGifts.sort((a, b) => {
-        const aChecked = a.buyers[currentUser] ? 1 : 0;
-        const bChecked = b.buyers[currentUser] ? 1 : 0;
-        return aChecked - bChecked; 
-    });
-    
-    // Обновление счетчиков в шапке
-    let userCheckedCount = giftsData.filter(gift => gift.buyers[currentUser]).length;
-    totalCountEl.textContent = giftsData.length;
-    userCountEl.textContent = userCheckedCount;
+    // 2. Умная Сортировка
+    if (currentSort === 'price-asc') {
+        processedGifts.sort((a, b) => a.price - b.price);
+    } else if (currentSort === 'price-desc') {
+        processedGifts.sort((a, b) => b.price - a.price);
+    } else if (currentSort === 'title-asc') {
+        processedGifts.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (currentSort === 'author-asc') {
+        processedGifts.sort((a, b) => a.createdBy.localeCompare(b.createdBy));
+    } else {
+        // Дефолтная: Сначала не купленные мной, потом купленные мной
+        processedGifts.sort((a, b) => {
+            const aChecked = a.buyers[currentUser] ? 1 : 0;
+            const bChecked = b.buyers[currentUser] ? 1 : 0;
+            return aChecked - bChecked;
+        });
+    }
 
-    if (filteredGifts.length === 0) {
-        giftsContainer.innerHTML = '<div class="loading-placeholder">Список пуст или ничего не найдено</div>';
+    // Обновление счетчиков
+    let myMarked = giftsData.filter(gift => gift.buyers[currentUser]).length;
+    totalCountEl.textContent = giftsData.length;
+    userCountEl.textContent = myMarked;
+
+    if (processedGifts.length === 0) {
+        giftsContainer.innerHTML = '<div class="loading-placeholder">Ничего не найдено</div>';
         return;
     }
 
-    // Создание элементов интерфейса
-    filteredGifts.forEach(gift => {
-        const isMeChecked = gift.buyers[currentUser] ? true : false;
-        
-        const card = document.createElement('div');
-        card.className = 'gift-card';
-        
-        // Визуальная кастомизация карточки, если она куплена текущим пользователем
-        if (isMeChecked) {
-            const userColor = generateUserColor(currentUser);
-            card.style.borderColor = userColor;
-            card.style.backgroundColor = `${userColor}08`; // Легкий оттенок цвета пользователя на фон
-        }
-        
+    // Отрисовка структуры карточки
+    processedGifts.forEach(gift => {
+        const isMeChecked = !!gift.buyers[currentUser];
         const card = document.createElement('div');
         card.className = 'gift-card';
         
         if (isMeChecked) {
             const userColor = generateUserColor(currentUser);
             card.style.borderColor = userColor;
-            card.style.backgroundColor = `${userColor}08`; 
+            card.style.backgroundColor = `${userColor}05`;
         }
 
-        // --- НОВЫЙ БЛОК ДЛЯ КАРТИНКИ ---
+        // КОЛОНКА 1: Информация об авторе
+        const creatorDiv = document.createElement('div');
+        creatorDiv.className = 'gift-creator';
+        creatorDiv.innerHTML = `Добавил(а): <span class="creator-name" style="color:${generateUserColor(gift.createdBy)}">${gift.createdBy}</span>`;
+        card.appendChild(creatorDiv);
+
+        // КОЛОНКА 2: Изображение
         if (gift.imageUrl) {
             const imgContainer = document.createElement('div');
             imgContainer.className = 'gift-image-container';
-            
             const img = document.createElement('img');
             img.src = gift.imageUrl;
             img.className = 'gift-image';
             img.alt = gift.title;
-            
-            // Если ссылка битая, просто скрываем контейнер с картинкой
-            img.onerror = () => { imgContainer.style.display = 'none'; };
-            
+            img.onerror = () => imgContainer.style.display = 'none'; // Скрыть, если ссылка сломалась
             imgContainer.appendChild(img);
             card.appendChild(imgContainer);
         }
-        // --- КОНЕЦ НОВОГО БЛОКА ---
-        
-        // Контент карточки (чекбокс и текст)
+
+        // КОЛОНКА 3: Название и Чекбокс
         const cardContent = document.createElement('div');
         cardContent.className = 'gift-card-content';
         
-        // Чекбокс
         const label = document.createElement('label');
         label.className = 'checkbox-container';
         const checkbox = document.createElement('input');
@@ -301,57 +267,30 @@ function renderGifts() {
         label.appendChild(checkbox);
         label.appendChild(checkmark);
         
-        // Текст (Название)
         const titleSpan = document.createElement('span');
         titleSpan.className = 'gift-title';
         titleSpan.textContent = gift.title;
         
-        // Логика двойного клика для редактирования текста (для admin)
-        if (currentUser.toLowerCase() === ADMIN_NAME.toLowerCase()) {
-            titleSpan.title = "Двойной клик для редактирования";
-            titleSpan.ondblclick = () => {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'edit-gift-input';
-                input.value = titleSpan.textContent;
-                
-                const saveEdit = () => {
-                    if (input.value.trim() && input.value.trim() !== gift.title) {
-                        updateGiftTitle(gift.id, input.value);
-                    } else {
-                        titleSpan.textContent = gift.title;
-                        input.replaceWith(titleSpan);
-                    }
-                };
-                
-                input.onkeydown = (e) => {
-                    if (e.key === 'Enter') saveEdit();
-                    if (e.key === 'Escape') {
-                        titleSpan.textContent = gift.title;
-                        input.replaceWith(titleSpan);
-                    }
-                };
-                input.onblur = saveEdit;
-                
-                titleSpan.replaceWith(input);
-                input.focus();
-            };
-        }
-        
         cardContent.appendChild(label);
         cardContent.appendChild(titleSpan);
         card.appendChild(cardContent);
-        
+
+        // КОЛОНКА 4: Цена
+        const priceDiv = document.createElement('div');
+        priceDiv.className = 'gift-price';
+        priceDiv.textContent = `${gift.price.toLocaleString('ru-RU')} ₽`;
+        card.appendChild(priceDiv);
+
+        // Кнопка удаления (доступна всем)
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'btn-delete';
         deleteBtn.innerHTML = '&#x2715;';
         deleteBtn.onclick = () => deleteGift(gift.id, card);
         card.appendChild(deleteBtn);
-        
-        // Список тех, кто отметили подарок
+
+        // Теги покупателей
         const buyersDiv = document.createElement('div');
         buyersDiv.className = 'gift-buyers';
-        
         Object.keys(gift.buyers).forEach(buyer => {
             const tag = document.createElement('span');
             tag.className = 'buyer-tag';
@@ -359,11 +298,10 @@ function renderGifts() {
             tag.style.backgroundColor = generateUserColor(buyer);
             buyersDiv.appendChild(tag);
         });
-        
         card.appendChild(buyersDiv);
+
         giftsContainer.appendChild(card);
     });
 }
 
-// Запуск приложения при загрузке страницы
 window.onload = init;
