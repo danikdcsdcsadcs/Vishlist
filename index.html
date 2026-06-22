@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Общий Вишлист</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -32,7 +30,7 @@
                     <div class="user-greeting">Привет, <span id="rooms-user-display" class="user-badge"></span>!</div>
                 </div>
                 <div class="header-actions">
-                    <button id="theme-toggle-rooms" class="btn-icon">🌓</button>
+                    <button id="theme-toggle-rooms" class="btn-icon" title="Сменить тему">🌓</button>
                     <button id="logout-btn" class="btn-secondary">Выйти</button>
                 </div>
             </div>
@@ -65,7 +63,7 @@
                 <button id="back-to-rooms-btn" class="btn-secondary">← К комнатам</button>
                 <div class="header-actions">
                     <button id="toggle-chat-btn" class="btn-primary">💬 Чат</button>
-                    <button id="theme-toggle-app" class="btn-icon">🌓</button>
+                    <button id="theme-toggle-app" class="btn-icon" title="Сменить тему">🌓</button>
                 </div>
             </div>
             
@@ -77,6 +75,11 @@
                 <div class="stats-counter">
                     👥 Участников: <strong id="room-users-count">0</strong> | 
                     🎁 Подарков: <strong id="total-count">0</strong>
+                </div>
+                
+                <button id="start-santa-btn" class="btn-secondary" style="display: none; margin: 10px auto;">🎲 Запустить Тайного Санту</button>
+                <div id="secret-santa-banner" class="secret-santa-banner" style="display: none;">
+                    🎅 Тайный Санта: вы дарите подарок пользователю <strong id="santa-target">...</strong>! 🤫
                 </div>
             </div>
 
@@ -105,7 +108,7 @@
 
         <main class="app-main room-layout">
             <div class="gifts-section">
-                <div class="filter-bar" style="margin-bottom: 1rem;">
+                <div class="filter-bar">
                     <input type="text" id="search-input" placeholder="🔍 Поиск...">
                     <select id="sort-select" class="sort-select">
                         <option value="default">По умолчанию</option>
@@ -118,7 +121,7 @@
                     </div>
             </div>
 
-            <aside id="chat-panel" class="chat-sidebar hidden-mobile">
+            <aside id="chat-panel" class="chat-sidebar">
                 <div class="chat-header">
                     <h3>💬 Чат комнаты</h3>
                     <button id="close-chat-btn" class="btn-icon mobile-only">✖</button>
