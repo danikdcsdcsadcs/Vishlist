@@ -1,3 +1,6 @@
+/* ==========================================
+   ПЕРЕМЕННЫЕ И ТЕМЫ
+   ========================================== */
 :root {
     --bg-main: #f8f9fa;
     --bg-card: #ffffff;
@@ -22,98 +25,165 @@
     --border-color: #2d3748;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-main); }
+/* ==========================================
+   БАЗОВЫЕ СТИЛИ
+   ========================================== */
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    -webkit-tap-highlight-color: transparent; 
+}
 
-.screen { display: none; opacity: 0; transition: opacity 0.3s; }
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: var(--bg-main); 
+    color: var(--text-main); 
+    transition: background-color 0.3s, color 0.3s;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Управление экранами */
+.screen { display: none; opacity: 0; transition: opacity 0.3s ease; }
 .screen.active { display: flex; flex-direction: column; opacity: 1; min-height: 100vh; }
 
-#login-screen { justify-content: center; align-items: center; padding: 1rem; }
-.login-card { background: var(--bg-card); padding: 2rem; border-radius: var(--radius); text-align: center; width: 100%; max-width: 400px; box-shadow: var(--shadow); }
-
-input[type="text"], input[type="number"], input[type="url"], .sort-select {
-    width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-card); color: var(--text-main); font-size: 1rem;
+/* ==========================================
+   ЭКРАН АВТОРИЗАЦИИ
+   ========================================== */
+#login-screen { 
+    justify-content: center; 
+    align-items: center; 
+    background: linear-gradient(135deg, #e7f5ff 0%, #e6fffa 100%);
+    padding: 1rem; 
 }
-input:focus, .sort-select:focus { outline: none; border-color: var(--primary-color); }
 
-.btn-primary { background: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: var(--transition); }
-.btn-primary:hover { background: var(--primary-hover); }
-.btn-secondary { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; }
+[data-theme="dark"] #login-screen {
+    background: linear-gradient(135deg, #1a202c 0%, #171923 100%);
+}
+
+.login-card { 
+    background-color: var(--bg-card); 
+    padding: 2rem; 
+    border-radius: var(--radius); 
+    text-align: center; 
+    width: 100%; 
+    max-width: 400px; 
+    box-shadow: var(--shadow); 
+}
+.login-card h1 { font-size: 1.6rem; margin-bottom: 0.5rem; }
+.login-card p { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+.login-card form { display: flex; flex-direction: column; gap: 1rem; }
+
+/* ==========================================
+   ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (Input, Select, Buttons)
+   ========================================== */
+input[type="text"], 
+input[type="number"], 
+input[type="url"], 
+.sort-select {
+    width: 100%; 
+    padding: 0.75rem 1rem; 
+    border: 1px solid var(--border-color); 
+    border-radius: 10px; 
+    background-color: var(--bg-card); 
+    color: var(--text-main); 
+    font-size: 1rem;
+    transition: var(--transition);
+    font-family: inherit;
+}
+input:focus, .sort-select:focus { 
+    outline: none; 
+    border-color: var(--primary-color); 
+    box-shadow: 0 0 0 3px rgba(77, 173, 247, 0.2);
+}
+
+.sort-select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 2.5rem;
+    appearance: none;
+}
+
+.btn-primary { 
+    background-color: var(--primary-color); 
+    color: white; 
+    border: none; 
+    padding: 0.75rem 1.5rem; 
+    border-radius: 10px; 
+    font-size: 1rem; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: var(--transition); 
+}
+.btn-primary:hover { background-color: var(--primary-hover); }
+
+.btn-secondary { 
+    background-color: transparent; 
+    color: var(--text-muted); 
+    border: 1px solid var(--border-color); 
+    padding: 0.5rem 1rem; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: 500; 
+}
+
 .btn-icon { background: none; border: none; font-size: 1.4rem; cursor: pointer; }
+.btn-block { width: 100%; }
 
-.app-header { background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+/* ==========================================
+   СТРУКТУРА ПРИЛОЖЕНИЯ (Layout)
+   ========================================== */
+.app-header { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
 .header-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .app-branding { text-align: center; margin-bottom: 1.5rem; }
+.app-branding h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+.stats-counter { color: var(--text-muted); font-size: 0.9rem; }
+
 .filter-bar { display: flex; gap: 0.75rem; max-width: 700px; margin: 0 auto 1.5rem auto; }
 .admin-panel { max-width: 700px; margin: 0 auto; border-top: 1px dashed var(--border-color); padding-top: 1.25rem; }
+
 .form-grid { display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 0.5rem; margin-bottom: 0.5rem; }
+.rooms-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
 .app-main { flex: 1; padding: 1.5rem; max-width: 1200px; width: 100%; margin: 0 auto; }
-.gifts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+.gifts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+.loading-placeholder { grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem 1rem; }
 
-/* Карточка Комнаты */
+.app-footer {
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background-color: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+}
+
+/* ==========================================
+   КОМНАТЫ
+   ========================================== */
 .room-card {
-    background: var(--bg-card); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 1.5rem; cursor: pointer; transition: var(--transition); display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 120px; position: relative;
+    background: var(--bg-card); 
+    border: 2px solid var(--border-color); 
+    border-radius: var(--radius); 
+    padding: 1.5rem; 
+    cursor: pointer; 
+    transition: var(--transition); 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    min-height: 120px; 
+    position: relative;
 }
 .room-card:hover { border-color: var(--primary-color); transform: translateY(-3px); }
 .room-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; text-align: center; }
 
-/* Рейтинг (Звездочки в форме) */
-.rating-input-container { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; justify-content: center; }
-.rating-label { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
-.star-rating { display: flex; flex-direction: row-reverse; justify-content: center; }
-.star-rating input { display: none; }
-.star-rating label { font-size: 2rem; color: var(--border-color); cursor: pointer; transition: color 0.2s; }
-.star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: var(--star-color); }
-
-/* Карточка Подарка */
-.gift-card {
-    background: var(--bg-card); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; position: relative; box-shadow: var(--shadow); transition: var(--transition);
-}
-.gift-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
-.gift-creator { font-size: 0.8rem; color: var(--text-muted); }
-.gift-rating { color: var(--star-color); font-size: 1.1rem; letter-spacing: 2px; }
-
-.gift-image-container { width: 100%; height: 180px; border-radius: 10px; overflow: hidden; margin-bottom: 1rem; background: var(--bg-main); }
-.gift-image { width: 100%; height: 100%; object-fit: cover; }
-
-.gift-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.5rem; line-height: 1.3; }
-.gift-price { font-size: 1.2rem; font-weight: 700; color: var(--primary-color); margin-bottom: 1rem; }
-
-/* Кнопка "Купить" внизу карточки */
-.btn-buy-action {
-    width: 100%; padding: 0.8rem; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; border: 2px solid var(--border-color); background: transparent; color: var(--text-main); transition: var(--transition); margin-top: auto; display: flex; justify-content: center; align-items: center; gap: 0.5rem;
-}
-.btn-buy-action:hover { background: var(--bg-main); }
-.btn-buy-action.active { background: var(--success-color); border-color: var(--success-color); color: white; }
-.btn-buy-action.active:hover { background: var(--success-hover); border-color: var(--success-hover); }
-
-.btn-delete { position: absolute; top: 1rem; right: 1rem; background: rgba(0,0,0,0.05); border: none; color: var(--text-muted); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.btn-delete:hover { color: #e53e3e; background: rgba(229,62,62,0.1); }
-
-.gift-buyers { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 1rem; min-height: 20px;}
-.buyer-tag { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 20px; color: white; font-weight: 600; }
-
-@media (max-width: 600px) {
-    .form-grid { grid-template-columns: 1fr; gap: 0.5rem; }
-    .filter-bar { flex-direction: column; }
-    .gifts-grid { grid-template-columns: 1fr; }
-}
-
-/* Сетка для форм комнат */
-.rooms-actions-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-}
-
-/* Блок с кодом комнаты */
-.room-id-display {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin: 0.5rem 0 1rem 0;
-}
-
+.room-id-display { font-size: 0.9rem; color: var(--text-muted); margin: 0.5rem 0 1rem 0; }
 .room-id-display code {
     background: var(--bg-main);
     padding: 0.3rem 0.6rem;
@@ -125,214 +195,19 @@ input:focus, .sort-select:focus { outline: none; border-color: var(--primary-col
     font-size: 1rem;
     transition: var(--transition);
 }
+.room-id-display code:hover { background: var(--primary-color); color: white; }
 
-.room-id-display code:hover {
-    background: var(--primary-color);
-    color: white;
-}
+/* Рейтинг */
+.rating-input-container { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; justify-content: center; }
+.rating-label { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+.star-rating { display: flex; flex-direction: row-reverse; justify-content: center; }
+.star-rating input { display: none; }
+.star-rating label { font-size: 2rem; color: var(--border-color); cursor: pointer; transition: color 0.2s; }
+.star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: var(--star-color); }
 
-@media (max-width: 600px) {
-    .rooms-actions-grid { grid-template-columns: 1fr; }
-}
-
-/* Общие мобильные оптимизации */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    -webkit-tap-highlight-color: transparent; /* Убирает синюю вспышку при клике на телефоне */
-}
-
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-main);
-    color: var(--text-main);
-    transition: background-color 0.3s, color 0.3s;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Управление экранами */
-.screen {
-    display: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.screen.active {
-    display: flex;
-    flex-direction: column;
-    opacity: 1;
-    min-height: 100vh;
-}
-
-/* Экран логина */
-#login-screen {
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(135deg, #e7f5ff 0%, #e6fffa 100%);
-    padding: 1rem;
-}
-
-[data-theme="dark"] #login-screen {
-    background: linear-gradient(135deg, #1a202c 0%, #171923 100%);
-}
-
-.login-card {
-    background-color: var(--bg-card);
-    padding: 2rem;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    text-align: center;
-    max-width: 400px;
-    width: 100%;
-}
-
-.login-card h1 {
-    font-size: 1.6rem;
-    margin-bottom: 0.5rem;
-}
-
-.login-card p {
-    color: var(--text-muted);
-    margin-bottom: 1.5rem;
-    font-size: 0.9rem;
-}
-
-.login-card form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-/* Элементы управления */
-input[type="text"],
-input[type="number"],
-input[type="url"],
-.sort-select {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    background-color: var(--bg-card);
-    color: var(--text-main);
-    font-size: 1rem;
-    transition: var(--transition);
-    font-family: inherit;
-}
-
-input:focus, .sort-select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(77, 173, 247, 0.2);
-}
-
-.sort-select {
-    cursor: pointer;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 16px;
-    padding-right: 2.5rem;
-    appearance: none; /* Убирает стандартную стрелку */
-}
-
-.btn-primary {
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.btn-primary:hover { background-color: var(--primary-hover); }
-
-.btn-secondary {
-    background-color: transparent;
-    color: var(--text-muted);
-    border: 1px solid var(--border-color);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.btn-icon {
-    background: none;
-    border: none;
-    font-size: 1.4rem;
-    cursor: pointer;
-}
-
-/* Панель фильтров и добавления */
-.app-header {
-    background-color: var(--bg-card);
-    border-bottom: 1px solid var(--border-color);
-    padding: 1.5rem;
-}
-
-.header-main {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.app-branding { text-align: center; margin-bottom: 1.5rem; }
-.app-branding h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
-.stats-counter { color: var(--text-muted); font-size: 0.9rem; }
-
-.filter-bar {
-    display: flex;
-    gap: 0.75rem;
-    max-width: 700px;
-    margin: 0 auto 1.5rem auto;
-}
-
-.admin-panel {
-    max-width: 700px;
-    margin: 0 auto;
-    border-top: 1px dashed var(--border-color);
-    padding-top: 1.25rem;
-}
-
-.form-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 2fr;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.btn-block { width: 100%; }
-
-/* Основная сетка карточек */
-.app-main {
-    flex: 1;
-    padding: 1.5rem;
-    max-width: 1200px;
-    width: 100%;
-    margin: 0 auto;
-}
-
-.gifts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.25rem;
-}
-
-.loading-placeholder {
-    grid-column: 1 / -1;
-    text-align: center;
-    color: var(--text-muted);
-    padding: 3rem 1rem;
-}
-
-/* Структура КАРТОЧКИ ПОДАРКА (Строго по ТЗ) */
+/* ==========================================
+   КАРТОЧКА ПОДАРКА (Строго по ТЗ)
+   ========================================== */
 .gift-card {
     background-color: var(--bg-card);
     border: 2px solid var(--border-color);
@@ -345,10 +220,8 @@ input:focus, .sort-select:focus {
     transition: var(--transition);
     animation: fadeIn 0.3s ease;
 }
-
 .gift-card:hover { transform: translateY(-2px); }
 
-/* 1. Имя создателя */
 .gift-creator {
     font-size: 0.8rem;
     color: var(--text-muted);
@@ -357,13 +230,8 @@ input:focus, .sort-select:focus {
     align-items: center;
     gap: 0.3rem;
 }
+.creator-name { font-weight: 600; text-transform: capitalize; }
 
-.creator-name {
-    font-weight: 600;
-    text-transform: capitalize;
-}
-
-/* 2. Фото */
 .gift-image-container {
     width: 100%;
     height: 160px;
@@ -372,14 +240,8 @@ input:focus, .sort-select:focus {
     margin-bottom: 0.75rem;
     background-color: var(--bg-main);
 }
+.gift-image { width: 100%; height: 100%; object-fit: cover; }
 
-.gift-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* 3. Блок контента (Чекбокс + Название) */
 .gift-card-content {
     display: flex;
     align-items: flex-start;
@@ -395,6 +257,14 @@ input:focus, .sort-select:focus {
     padding-right: 1rem;
 }
 
+.gift-price {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.75rem;
+    margin-left: calc(22px + 0.75rem); /* Выравнивание под текст */
+}
+
 /* Кастомный круглый чекбокс */
 .checkbox-container {
     position: relative;
@@ -403,9 +273,7 @@ input:focus, .sort-select:focus {
     width: 22px;
     flex-shrink: 0;
 }
-
 .checkbox-container input { position: absolute; opacity: 0; }
-
 .checkmark {
     position: absolute;
     top: 0; left: 0; height: 22px; width: 22px;
@@ -413,31 +281,19 @@ input:focus, .sort-select:focus {
     border-radius: 50%;
     transition: var(--transition);
 }
-
 .checkbox-container input:checked ~ .checkmark {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
 }
-
 .checkmark:after {
     content: ""; position: absolute; display: none;
     left: 7px; top: 3px; width: 4px; height: 8px;
     border: solid white; border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
-
 .checkbox-container input:checked ~ .checkmark:after { display: block; }
 
-/* 4. Цена подарка */
-.gift-price {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--primary-color);
-    margin-bottom: 0.75rem;
-    margin-left: calc(22px + 0.75rem); /* Выравнивание под текст названия */
-}
-
-/* Кнопка удаления */
+/* Кнопки и теги в карточке */
 .btn-delete {
     position: absolute;
     top: 1rem; right: 1rem;
@@ -453,20 +309,17 @@ input:focus, .sort-select:focus {
     justify-content: center;
     transition: var(--transition);
 }
-
 [data-theme="dark"] .btn-delete { background: rgba(255, 255, 255, 0.08); }
 .btn-delete:hover { color: #e53e3e; background: rgba(229, 62, 62, 0.1); }
 
-/* Кто купил (Теги) */
 .gift-buyers {
     display: flex;
     flex-wrap: wrap;
     gap: 0.3rem;
     border-top: 1px solid var(--border-color);
     padding-top: 0.75rem;
-    margin-top: auto; /* Прижимает к низу карточки */
+    margin-top: auto; 
 }
-
 .buyer-tag {
     font-size: 0.7rem;
     padding: 0.15rem 0.4rem;
@@ -475,30 +328,22 @@ input:focus, .sort-select:focus {
     font-weight: 600;
 }
 
-/* Футер */
-.app-footer {
-    text-align: center;
-    padding: 1rem;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    background-color: var(--bg-card);
-    border-top: 1px solid var(--border-color);
-}
-
-/* Анимации */
+/* ==========================================
+   АНИМАЦИИ И МЕДИАЗАПРОСЫ
+   ========================================== */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 .fade-out { opacity: 0 !important; transform: scale(0.95) !important; transition: var(--transition); }
 
-/* АДАПТИВНОСТЬ ДЛЯ СМАРТФОНОВ */
 @media (max-width: 600px) {
     .app-header { padding: 1rem; }
+    .header-main { gap: 0.5rem; }
+    .app-branding h1 { font-size: 1.5rem; }
     .form-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+    .rooms-actions-grid { grid-template-columns: 1fr; }
     .filter-bar { flex-direction: column; gap: 0.5rem; }
     .app-main { padding: 1rem; }
     .gifts-grid { grid-template-columns: 1fr; }
-    .header-main { gap: 0.5rem; }
-    .app-branding h1 { font-size: 1.5rem; }
 }
