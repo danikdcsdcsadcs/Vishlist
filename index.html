@@ -46,10 +46,11 @@
                 <input type="text" id="search-input" placeholder="Поиск подарка...">
             </div>
 
-            <div id="admin-panel" class="admin-panel hidden">
-                <form id="add-gift-form">
+            <div id="admin-panel" class="admin-panel">
+                <form id="add-gift-form" style="flex-direction: column; gap: 0.5rem;">
                     <input type="text" id="gift-title-input" placeholder="Название нового подарка..." required autocomplete="off">
-                    <button type="submit" class="btn-primary">Добавить</button>
+                    <input type="url" id="gift-image-input" placeholder="Ссылка на фото (необязательно, например: https://...)" autocomplete="off">
+                    <button type="submit" class="btn-primary">Добавить в вишлист</button>
                 </form>
             </div>
         </header>
