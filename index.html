@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Общий Вишлист</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,14 +43,24 @@
             </div>
 
             <div class="filter-bar">
-                <input type="text" id="search-input" placeholder="Поиск подарка...">
+                <input type="text" id="search-input" placeholder="🔍 Поиск подарка...">
+                <select id="sort-select" class="sort-select">
+                    <option value="default">Сортировка: Сначала нужные</option>
+                    <option value="price-asc">Цена: по возрастанию</option>
+                    <option value="price-desc">Цена: по убыванию</option>
+                    <option value="title-asc">Название: А-Я</option>
+                    <option value="author-asc">Кто создал: А-Я</option>
+                </select>
             </div>
 
             <div id="admin-panel" class="admin-panel">
-                <form id="add-gift-form" style="flex-direction: column; gap: 0.5rem;">
-                    <input type="text" id="gift-title-input" placeholder="Название нового подарка..." required autocomplete="off">
-                    <input type="url" id="gift-image-input" placeholder="Ссылка на фото (необязательно, например: https://...)" autocomplete="off">
-                    <button type="submit" class="btn-primary">Добавить в вишлист</button>
+                <form id="add-gift-form">
+                    <div class="form-grid">
+                        <input type="text" id="gift-title-input" placeholder="Название подарка*" required autocomplete="off">
+                        <input type="number" id="gift-price-input" placeholder="Цена (₽)*" required min="0" autocomplete="off">
+                        <input type="url" id="gift-image-input" placeholder="Ссылка на фото (https://...)" autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn-primary btn-block">Добавить в вишлист</button>
                 </form>
             </div>
         </header>
