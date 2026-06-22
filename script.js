@@ -23,6 +23,7 @@ let currentTheme = localStorage.getItem('wishlist_theme') || 'light';
 let roomsData = [];
 let currentRoomId = null;
 let currentRoomName = '';
+let currentRoomCreator = '';
 let giftsData = [];
 let searchQuery = '';
 let currentSort = 'default';
@@ -52,10 +53,15 @@ function showRoomsScreen() {
     listenToRooms();
 }
 
-function showAppScreen(roomId, roomName) {
+function showAppScreen(roomId, roomName, roomCreator) {
     currentRoomId = roomId;
     currentRoomName = roomName;
+    currentRoomCreator = roomCreator;
+    
     document.getElementById('current-room-name').textContent = roomName;
+    
+    // Показываем кнопку Санты только создателю
+    document.getElementById('start-santa-btn').style.display = (currentUser === roomCreator) ? 'inline-block' : 'none';
     
     const idDisplay = document.getElementById('current-room-id');
     idDisplay.textContent = roomId;
@@ -66,9 +72,9 @@ function showAppScreen(roomId, roomName) {
         });
     };
     
-    // Добавляем себя в список участников комнаты
+    // Добавляем себя в список участников комнаты (сохраняем реальное имя для Санты)
     const safeUser = getSafeUserKey(currentUser);
-    set(ref(db, `rooms/${roomId}/users_count/${safeUser}`), true);
+    set(ref(db, `rooms/${roomId}/users_count/${safeUser}`), currentUser);
     
     roomsScreen.classList.remove('active');
     appScreen.classList.add('active');
@@ -77,29 +83,21 @@ function showAppScreen(roomId, roomName) {
 }
 
 // ==========================================
-// АВТОРИЗАЦИЯ (Кастомная по Логину и Паролю)
+// АВТОРИЗАЦИЯ
 // ==========================================
 document.getElementById('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const login = document.getElementById('username-input').value.trim();
     const pass = document.getElementById('password-input').value.trim();
-    
     if (!login || !pass) return;
 
     const safeLogin = getSafeUserKey(login);
-    const userRef = ref(db, `users/${safeLogin}`);
-
-    get(userRef).then((snapshot) => {
+    get(ref(db, `users/${safeLogin}`)).then((snapshot) => {
         if (snapshot.exists()) {
-            // Пользователь есть, проверяем пароль
-            if (snapshot.val().password === pass) {
-                loginSuccess(login);
-            } else {
-                alert('Неверный пароль для этого логина!');
-            }
+            if (snapshot.val().password === pass) loginSuccess(login);
+            else alert('Неверный пароль для этого логина!');
         } else {
-            // Новый пользователь — регистрируем
-            set(userRef, { password: pass }).then(() => {
+            set(ref(db, `users/${safeLogin}`), { password: pass }).then(() => {
                 alert('Новый аккаунт создан!');
                 loginSuccess(login);
             });
@@ -126,7 +124,7 @@ document.getElementById('back-to-rooms-btn').onclick = () => {
     showRoomsScreen();
 };
 
-// Темы
+// Темы и Утилиты
 const toggleTheme = () => {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
@@ -135,14 +133,11 @@ const toggleTheme = () => {
 document.getElementById('theme-toggle-rooms').onclick = toggleTheme;
 document.getElementById('theme-toggle-app').onclick = toggleTheme;
 
-// Утилиты
 function generateUserColor(username) {
     let hash = 0;
     for (let i = 0; i < username.length; i++) hash = username.charCodeAt(i) + ((hash << 5) - hash);
     return `hsl(${Math.abs(hash) % 360}, 60%, 45%)`;
 }
-function triggerConfetti() { confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } }); }
-function renderStars(rating) { let s = ''; for (let i=1; i<=5; i++) s += i <= rating ? '★' : '☆'; return s; }
 function getSafeUserKey(username) { return username.replace(/[\.\$\#\[\]\/]/g, "_"); }
 function getAvatarUrl(username) { return `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}&backgroundColor=b6e3f4`; }
 
@@ -156,9 +151,7 @@ function listenToRooms() {
         const roomIds = Object.keys(userRooms);
         
         if (roomIds.length === 0) {
-            roomsData = [];
-            renderRooms();
-            return;
+            roomsData = []; renderRooms(); return;
         }
 
         get(ref(db, 'rooms')).then((allRoomsSnap) => {
@@ -195,8 +188,7 @@ document.getElementById('join-room-form').addEventListener('submit', (e) => {
         get(ref(db, `rooms/${roomId}`)).then((snapshot) => {
             if (snapshot.exists()) {
                 set(ref(db, `user_rooms/${getSafeUserKey(currentUser)}/${roomId}`), true).then(() => {
-                    idInput.value = '';
-                    alert('Успешно присоединились!');
+                    idInput.value = ''; alert('Успешно присоединились!');
                 });
             } else alert('Комната не найдена.');
         });
@@ -213,7 +205,7 @@ function renderRooms() {
     roomsData.forEach(room => {
         const card = document.createElement('div');
         card.className = 'room-card';
-        card.onclick = () => showAppScreen(room.id, room.name);
+        card.onclick = () => showAppScreen(room.id, room.name, room.createdBy);
         card.innerHTML = `<div class="room-title">${room.name}</div><div class="gift-creator">Создатель: ${room.createdBy}</div>`;
         if (room.createdBy === currentUser) {
             const btn = document.createElement('button');
@@ -226,12 +218,11 @@ function renderRooms() {
 }
 
 // ==========================================
-// ЛОГИКА ПОДАРКОВ И ПОЛЬЗОВАТЕЛЕЙ КОМНАТЫ
+// ПОДАРКИ, УЧАСТНИКИ И ТАЙНЫЙ САНТА
 // ==========================================
 function listenToRoomData() {
     if (!currentRoomId) return;
     
-    // Слушаем подарки
     onValue(ref(db, `rooms/${currentRoomId}/gifts`), (snapshot) => {
         giftsData = [];
         const data = snapshot.val();
@@ -247,12 +238,52 @@ function listenToRoomData() {
         renderGifts();
     });
 
-    // Слушаем количество участников
     onValue(ref(db, `rooms/${currentRoomId}/users_count`), (snapshot) => {
         const data = snapshot.val();
         document.getElementById('room-users-count').textContent = data ? Object.keys(data).length : 1;
     });
+
+    // Слушатель Тайного Санты
+    onValue(ref(db, `rooms/${currentRoomId}/secret_santa`), (snapshot) => {
+        const data = snapshot.val();
+        const banner = document.getElementById('secret-santa-banner');
+        const targetSpan = document.getElementById('santa-target');
+        const safeMe = getSafeUserKey(currentUser);
+
+        if (data && data[safeMe]) {
+            banner.style.display = 'block';
+            targetSpan.textContent = data[safeMe]; // Показываем реальное имя того, кому дарим
+        } else {
+            banner.style.display = 'none';
+        }
+    });
 }
+
+// Генерация Тайного Санты
+document.getElementById('start-santa-btn').onclick = () => {
+    if(!confirm('Распределить Тайного Санту среди участников?')) return;
+    
+    get(ref(db, `rooms/${currentRoomId}/users_count`)).then(snap => {
+        const usersObj = snap.val() || {};
+        const safeKeys = Object.keys(usersObj);
+        
+        if (safeKeys.length < 3) return alert("Для Тайного Санты нужно минимум 3 участника!");
+
+        // Перемешиваем массив
+        let shuffled = [...safeKeys].sort(() => 0.5 - Math.random());
+        let assignments = {};
+        
+        // Назначаем по кругу
+        for (let i = 0; i < shuffled.length; i++) {
+            let giverSafe = shuffled[i];
+            let receiverSafe = shuffled[(i + 1) % shuffled.length];
+            assignments[giverSafe] = usersObj[receiverSafe]; // Сохраняем имя получателя
+        }
+        
+        set(ref(db, `rooms/${currentRoomId}/secret_santa`), assignments)
+            .then(() => alert("Санта успешно распределен! Обновите страницу, если баннер не появился."));
+    });
+};
 
 document.getElementById('add-gift-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -276,7 +307,7 @@ document.getElementById('add-gift-form').addEventListener('submit', (e) => {
 function toggleBuyGift(giftId, isCurrentlyChecked) {
     const safeUsername = getSafeUserKey(currentUser);
     const buyerRef = ref(db, `rooms/${currentRoomId}/gifts/${giftId}/buyers/${safeUsername}`);
-    if (!isCurrentlyChecked) set(buyerRef, true).then(triggerConfetti);
+    if (!isCurrentlyChecked) set(buyerRef, true).then(() => confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } }));
     else remove(buyerRef);
 }
 
@@ -291,13 +322,11 @@ function renderGifts() {
     if (currentSort === 'price-asc') processedGifts.sort((a, b) => a.price - b.price);
     else if (currentSort === 'price-desc') processedGifts.sort((a, b) => b.price - a.price);
     else if (currentSort === 'rating-desc') processedGifts.sort((a, b) => b.rating - a.rating);
-    else processedGifts.sort((a, b) => (a.buyers[currentUser] ? 1 : 0) - (b.buyers[currentUser] ? 1 : 0));
 
     document.getElementById('total-count').textContent = giftsData.length;
 
     if (processedGifts.length === 0) {
-        container.innerHTML = '<div class="loading-placeholder">Нет подарков</div>';
-        return;
+        container.innerHTML = '<div class="loading-placeholder">Нет подарков</div>'; return;
     }
 
     processedGifts.forEach(gift => {
@@ -306,22 +335,16 @@ function renderGifts() {
         card.className = 'gift-card';
         if (isMeChecked) card.style.borderColor = 'var(--success-color)';
 
+        let stars = ''; for(let i=1; i<=5; i++) stars += i <= gift.rating ? '★' : '☆';
+
         const headerDiv = document.createElement('div');
         headerDiv.className = 'gift-header';
-        headerDiv.innerHTML = `
-            <div class="gift-creator">
-                <img src="${getAvatarUrl(gift.createdBy)}" alt="av"> 
-                <span style="color:${generateUserColor(gift.createdBy)}">${gift.createdBy}</span>
-            </div>
-            <div class="gift-rating">${renderStars(gift.rating)}</div>
-        `;
+        headerDiv.innerHTML = `<div class="gift-creator"><img src="${getAvatarUrl(gift.createdBy)}" alt="av"> <b>${gift.createdBy}</b></div><div style="color:var(--star-color)">${stars}</div>`;
         card.appendChild(headerDiv);
 
         if (gift.imageUrl) {
-            const imgContainer = document.createElement('div');
-            imgContainer.className = 'gift-image-container';
-            const img = document.createElement('img');
-            img.src = gift.imageUrl; img.className = 'gift-image';
+            const imgContainer = document.createElement('div'); imgContainer.className = 'gift-image-container';
+            const img = document.createElement('img'); img.src = gift.imageUrl; img.className = 'gift-image';
             img.onerror = () => imgContainer.style.display = 'none';
             imgContainer.appendChild(img); card.appendChild(imgContainer);
         }
@@ -356,8 +379,14 @@ function renderGifts() {
 // ЛОГИКА ЧАТА
 // ==========================================
 const chatSidebar = document.getElementById('chat-panel');
-document.getElementById('toggle-chat-btn').onclick = () => chatSidebar.classList.toggle('open');
-document.getElementById('close-chat-btn').onclick = () => chatSidebar.classList.remove('open');
+document.getElementById('toggle-chat-btn').onclick = () => {
+    chatSidebar.classList.toggle('open');
+    chatSidebar.style.display = chatSidebar.classList.contains('open') ? 'flex' : 'none';
+};
+document.getElementById('close-chat-btn').onclick = () => {
+    chatSidebar.classList.remove('open');
+    chatSidebar.style.display = 'none';
+};
 
 function listenToChat() {
     if (!currentRoomId) return;
@@ -382,7 +411,6 @@ function listenToChat() {
                 div.innerHTML = `${authorHtml}<div>${msg.text}</div>`;
                 container.appendChild(div);
             });
-            // Прокрутка вниз
             container.scrollTop = container.scrollHeight;
         } else {
             container.innerHTML = '<div style="text-align:center; color:gray; font-size: 0.8rem;">Нет сообщений. Напишите первым!</div>';
@@ -395,9 +423,7 @@ document.getElementById('chat-form').addEventListener('submit', (e) => {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     if (text) {
-        push(ref(db, `rooms/${currentRoomId}/messages`), {
-            sender: currentUser, text: text, timestamp: Date.now()
-        });
+        push(ref(db, `rooms/${currentRoomId}/messages`), { sender: currentUser, text: text, timestamp: Date.now() });
         input.value = '';
     }
 });
