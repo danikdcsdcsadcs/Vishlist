@@ -7,13 +7,13 @@ import { getDatabase, ref, set, push, onValue, remove, update } from "https://ww
 // Замените плейсхолдеры ниже вашими данными из консоли Firebase
 // ==========================================
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCS8ekWaGkhU2k7t8foHzn8I2U-zEDJUYU",
+    authDomain: "mywishlistapp-1db3d.firebaseapp.com",
+    databaseURL: "https://mywishlistapp-1db3d-default-rtdb.asia-southeast1.firebasedatabase.app/",
+    projectId: "mywishlistapp-1db3d",
+    storageBucket: "mywishlistapp-1db3d.firebasestorage.app",
+    messagingSenderId: "209220916434",
+    appId: "1:209220916434:web:bc121ca5583b1885f9c90b"
 };
 
 // Инициализация Firebase
