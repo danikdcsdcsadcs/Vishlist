@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 // ==========================================
 // КОНФИГУРАЦИЯ FIREBASE
@@ -57,6 +57,16 @@ function showAppScreen(roomId, roomName) {
     currentRoomName = roomName;
     document.getElementById('current-room-name').textContent = roomName;
     
+    // Логика отображения и копирования ID
+    const idDisplay = document.getElementById('current-room-id');
+    idDisplay.textContent = roomId;
+    idDisplay.onclick = () => {
+        navigator.clipboard.writeText(roomId).then(() => {
+            idDisplay.textContent = 'Скопировано!';
+            setTimeout(() => idDisplay.textContent = roomId, 1500);
+        });
+    };
+    
     roomsScreen.classList.remove('active');
     appScreen.classList.add('active');
     listenToGiftsChanges();
@@ -107,42 +117,104 @@ function triggerConfetti() {
 
 function renderStars(rating) {
     let starsHtml = '';
-    for (let i = 1; i <= 5; i++) {
-        starsHtml += i <= rating ? '★' : '☆';
-    }
+    for (let i = 1; i <= 5; i++) starsHtml += i <= rating ? '★' : '☆';
     return starsHtml;
 }
 
+// Защита ключей Firebase от недопустимых символов
+function getSafeUserKey(username) {
+    return username.replace(/[\.\$\#\[\]\/]/g, "_");
+}
+
 // ==========================================
-// ЛОГИКА КОМНАТ
+// ЛОГИКА КОМНАТ (Многие-ко-многим)
 // ==========================================
 function listenToRooms() {
-    onValue(ref(db, 'rooms'), (snapshot) => {
-        roomsData = [];
-        const data = snapshot.val();
-        if (data) {
-            Object.keys(data).forEach(key => {
-                roomsData.push({ id: key, name: data[key].name, createdBy: data[key].createdBy });
-            });
+    const safeUser = getSafeUserKey(currentUser);
+    
+    // 1. Слушаем только те комнаты, в которые вступил пользователь
+    onValue(ref(db, `user_rooms/${safeUser}`), (userRoomsSnap) => {
+        const userRooms = userRoomsSnap.val() || {};
+        const roomIds = Object.keys(userRooms);
+        
+        if (roomIds.length === 0) {
+            roomsData = [];
+            renderRooms();
+            return;
         }
-        renderRooms();
+
+        // 2. Получаем данные самих комнат
+        get(ref(db, 'rooms')).then((allRoomsSnap) => {
+            const allRooms = allRoomsSnap.val() || {};
+            roomsData = [];
+            
+            roomIds.forEach(id => {
+                if (allRooms[id]) {
+                    roomsData.push({ id, name: allRooms[id].name, createdBy: allRooms[id].createdBy });
+                } else {
+                    // Если комната была удалена создателем, чистим мертвую связь
+                    remove(ref(db, `user_rooms/${safeUser}/${id}`));
+                }
+            });
+            renderRooms();
+        });
     });
 }
 
+// Создание комнаты
 document.getElementById('create-room-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const nameInput = document.getElementById('room-name-input');
     const name = nameInput.value.trim();
+    
     if (name) {
-        push(ref(db, 'rooms'), { name, createdBy: currentUser });
-        nameInput.value = '';
+        const newRoomRef = push(ref(db, 'rooms'));
+        const roomId = newRoomRef.key;
+        
+        // Создаем саму комнату
+        set(newRoomRef, { name, createdBy: currentUser }).then(() => {
+            // И сразу записываем создателя как участника
+            const safeUser = getSafeUserKey(currentUser);
+            set(ref(db, `user_rooms/${safeUser}/${roomId}`), true);
+            nameInput.value = '';
+        });
     }
 });
 
-function deleteRoom(id, e) {
-    e.stopPropagation(); // Чтобы не сработал переход в комнату
-    if(confirm('Точно удалить комнату и все её подарки?')) {
-        remove(ref(db, `rooms/${id}`));
+// Присоединение к комнате по коду
+document.getElementById('join-room-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const idInput = document.getElementById('room-id-input');
+    const roomId = idInput.value.trim();
+    
+    if (roomId) {
+        // Проверяем, существует ли комната с таким ID
+        get(ref(db, `rooms/${roomId}`)).then((snapshot) => {
+            if (snapshot.exists()) {
+                const safeUser = getSafeUserKey(currentUser);
+                // Записываем пользователя в комнату
+                set(ref(db, `user_rooms/${safeUser}/${roomId}`), true).then(() => {
+                    idInput.value = '';
+                    alert('Вы успешно присоединились к комнате!');
+                });
+            } else {
+                alert('Ошибка: Комната с таким кодом не найдена.');
+            }
+        });
+    }
+});
+
+// Удаление комнаты (Только создатель)
+function deleteRoom(room, e) {
+    e.stopPropagation();
+    if (room.createdBy !== currentUser) {
+        alert('Удалить комнату может только её создатель!');
+        return;
+    }
+    
+    if(confirm('Точно удалить комнату и все её подарки для всех участников?')) {
+        remove(ref(db, `rooms/${room.id}`));
+        // Локальная связь удалится автоматически при следующем обновлении
     }
 }
 
@@ -150,7 +222,7 @@ function renderRooms() {
     const container = document.getElementById('rooms-container');
     container.innerHTML = '';
     if (roomsData.length === 0) {
-        container.innerHTML = '<div class="loading-placeholder">Нет доступных комнат. Создайте первую!</div>';
+        container.innerHTML = '<div class="loading-placeholder">У вас пока нет комнат. Создайте новую или введите код приглашения!</div>';
         return;
     }
 
@@ -164,11 +236,13 @@ function renderRooms() {
             <div class="gift-creator">Создатель: ${room.createdBy}</div>
         `;
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'btn-delete';
-        deleteBtn.innerHTML = '&#x2715;';
-        deleteBtn.onclick = (e) => deleteRoom(room.id, e);
-        card.appendChild(deleteBtn);
+        if (room.createdBy === currentUser) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-delete';
+            deleteBtn.innerHTML = '&#x2715;';
+            deleteBtn.onclick = (e) => deleteRoom(room, e);
+            card.appendChild(deleteBtn);
+        }
 
         container.appendChild(card);
     });
@@ -190,7 +264,7 @@ function listenToGiftsChanges() {
                     price: Number(data[key].price) || 0,
                     imageUrl: data[key].imageUrl || '',
                     createdBy: data[key].createdBy || 'Аноним',
-                    rating: data[key].rating || 3, // Рейтинг по умолчанию
+                    rating: data[key].rating || 3,
                     buyers: data[key].buyers || {}
                 });
             });
@@ -204,8 +278,6 @@ document.getElementById('add-gift-form').addEventListener('submit', (e) => {
     const title = document.getElementById('gift-title-input').value.trim();
     const price = document.getElementById('gift-price-input').value.trim();
     const imageUrl = document.getElementById('gift-image-input').value.trim();
-    
-    // Получаем выбранный рейтинг
     const ratingElement = document.querySelector('input[name="rating"]:checked');
     const rating = ratingElement ? parseInt(ratingElement.value) : 3;
 
@@ -224,9 +296,8 @@ function deleteGift(id) {
     remove(ref(db, `rooms/${currentRoomId}/gifts/${id}`));
 }
 
-// Новая логика для Большой Кнопки
 function toggleBuyGift(giftId, isCurrentlyChecked) {
-    const safeUsername = currentUser.replace(/[\.\$\#\[\]\/]/g, "_");
+    const safeUsername = getSafeUserKey(currentUser);
     const buyerRef = ref(db, `rooms/${currentRoomId}/gifts/${giftId}/buyers/${safeUsername}`);
     
     if (!isCurrentlyChecked) {
@@ -248,7 +319,7 @@ function renderGifts() {
     
     if (currentSort === 'price-asc') processedGifts.sort((a, b) => a.price - b.price);
     else if (currentSort === 'price-desc') processedGifts.sort((a, b) => b.price - a.price);
-    else if (currentSort === 'rating-desc') processedGifts.sort((a, b) => b.rating - a.rating); // Сортировка по звездам
+    else if (currentSort === 'rating-desc') processedGifts.sort((a, b) => b.rating - a.rating);
     else {
         processedGifts.sort((a, b) => (a.buyers[currentUser] ? 1 : 0) - (b.buyers[currentUser] ? 1 : 0));
     }
@@ -257,17 +328,16 @@ function renderGifts() {
     document.getElementById('user-count').textContent = giftsData.filter(g => g.buyers[currentUser]).length;
 
     if (processedGifts.length === 0) {
-        container.innerHTML = '<div class="loading-placeholder">Ничего не найдено</div>';
+        container.innerHTML = '<div class="loading-placeholder">В этой комнате пока нет подарков</div>';
         return;
     }
 
     processedGifts.forEach(gift => {
-        const isMeChecked = !!gift.buyers[currentUser];
+        const isMeChecked = !!gift.buyers[getSafeUserKey(currentUser)];
         const card = document.createElement('div');
         card.className = 'gift-card';
         if (isMeChecked) card.style.borderColor = 'var(--success-color)';
 
-        // Шапка карточки (Автор и Звезды)
         const headerDiv = document.createElement('div');
         headerDiv.className = 'gift-header';
         headerDiv.innerHTML = `
@@ -297,7 +367,6 @@ function renderGifts() {
         priceDiv.textContent = `${gift.price.toLocaleString('ru-RU')} ₽`;
         card.appendChild(priceDiv);
 
-        // Теги тех, кто уже вписался
         const buyersDiv = document.createElement('div');
         buyersDiv.className = 'gift-buyers';
         Object.keys(gift.buyers).forEach(buyer => {
@@ -309,7 +378,6 @@ function renderGifts() {
         });
         card.appendChild(buyersDiv);
 
-        // НОВАЯ БОЛЬШАЯ КНОПКА ПОКУПКИ
         const buyBtn = document.createElement('button');
         buyBtn.className = isMeChecked ? 'btn-buy-action active' : 'btn-buy-action';
         buyBtn.innerHTML = isMeChecked ? '✅ Вы покупаете это' : '🛍️ Хочу подарить';
