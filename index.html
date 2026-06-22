@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Общий Вишлист</title>
+    <title>Общий Вишлист: Комнаты</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
     <div id="login-screen" class="screen active">
         <div class="login-card">
             <h1>Добро пожаловать!</h1>
-            <p>Введите своё имя для входа в вишлист</p>
+            <p>Введите своё имя для входа</p>
             <form id="login-form">
                 <input type="text" id="username-input" placeholder="Ваше имя" required autocomplete="off" maxlength="20">
                 <button type="submit" class="btn-primary">Войти</button>
@@ -23,43 +23,80 @@
         </div>
     </div>
 
+    <div id="rooms-screen" class="screen">
+        <header class="app-header">
+            <div class="header-main">
+                <div class="user-greeting">Привет, <span id="rooms-user-display" class="user-badge"></span>!</div>
+                <div class="header-actions">
+                    <button id="theme-toggle-rooms" class="btn-icon">🌓</button>
+                    <button id="logout-btn" class="btn-secondary">Выйти</button>
+                </div>
+            </div>
+            <div class="app-branding">
+                <h1>🏠 Ваши комнаты</h1>
+                <p class="stats-counter">Создайте новую комнату или выберите существующую</p>
+            </div>
+            
+            <div class="admin-panel" style="border-top: none;">
+                <form id="create-room-form" style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="room-name-input" placeholder="Название новой комнаты..." required autocomplete="off">
+                    <button type="submit" class="btn-primary">Создать</button>
+                </form>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <div id="rooms-container" class="gifts-grid">
+                <div class="loading-placeholder">Загрузка комнат...</div>
+            </div>
+        </main>
+    </div>
+
     <div id="app-screen" class="screen">
         <header class="app-header">
             <div class="header-main">
-                <div class="user-greeting">
-                    Привет, <span id="current-user-display" class="user-badge">Гость</span>!
-                </div>
+                <button id="back-to-rooms-btn" class="btn-secondary">← К комнатам</button>
                 <div class="header-actions">
-                    <button id="theme-toggle" class="btn-icon" title="Переключить тему">🌓</button>
-                    <button id="logout-btn" class="btn-secondary">Выйти</button>
+                    <button id="theme-toggle-app" class="btn-icon">🌓</button>
                 </div>
             </div>
             
             <div class="app-branding">
-                <h1>🎁 Наш Вишлист</h1>
-                <div id="stats-counter" class="stats-counter">
+                <h1>🎁 Комната: <span id="current-room-name">...</span></h1>
+                <div class="stats-counter">
                     Всего подарков: <strong id="total-count">0</strong> | Отмечено вами: <strong id="user-count">0</strong>
                 </div>
             </div>
 
             <div class="filter-bar">
-                <input type="text" id="search-input" placeholder="🔍 Поиск подарка...">
+                <input type="text" id="search-input" placeholder="🔍 Поиск...">
                 <select id="sort-select" class="sort-select">
-                    <option value="default">Сортировка: Сначала нужные</option>
+                    <option value="default">Сортировка: По умолчанию</option>
+                    <option value="rating-desc">По приоритету: Сначала важные</option>
                     <option value="price-asc">Цена: по возрастанию</option>
                     <option value="price-desc">Цена: по убыванию</option>
-                    <option value="title-asc">Название: А-Я</option>
-                    <option value="author-asc">Кто создал: А-Я</option>
                 </select>
             </div>
 
-            <div id="admin-panel" class="admin-panel">
+            <div class="admin-panel">
                 <form id="add-gift-form">
                     <div class="form-grid">
                         <input type="text" id="gift-title-input" placeholder="Название подарка*" required autocomplete="off">
                         <input type="number" id="gift-price-input" placeholder="Цена (₽)*" required min="0" autocomplete="off">
                         <input type="url" id="gift-image-input" placeholder="Ссылка на фото (https://...)" autocomplete="off">
                     </div>
+                    
+                    <div class="rating-input-container">
+                        <span class="rating-label">Насколько нужно:</span>
+                        <div class="star-rating">
+                            <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="Жизненно необходимо">★</label>
+                            <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="Очень хочу">★</label>
+                            <input type="radio" id="star3" name="rating" value="3" checked><label for="star3" title="Было бы неплохо">★</label>
+                            <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="Не горит">★</label>
+                            <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="Просто прикольно">★</label>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn-primary btn-block">Добавить в вишлист</button>
                 </form>
             </div>
@@ -67,13 +104,8 @@
 
         <main class="app-main">
             <div id="gifts-container" class="gifts-grid">
-                <div class="loading-placeholder">Загрузка подарков...</div>
-            </div>
+                </div>
         </main>
-
-        <footer class="app-footer">
-            <p>&copy; 2026 Сделано с ❤️ | <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub Project</a></p>
-        </footer>
     </div>
 
     <script type="module" src="script.js"></script>
