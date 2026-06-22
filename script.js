@@ -72,14 +72,9 @@ function showAppScreen() {
     appScreen.classList.add('active');
     currentUserDisplay.textContent = currentUser;
     
-    // Показ панели администратора, если имя совпадает
-    if (currentUser.toLowerCase() === ADMIN_NAME.toLowerCase()) {
-        adminPanel.classList.remove('hidden');
-    } else {
-        adminPanel.classList.add('hidden');
-    }
+    // Теперь панель доступна всем (убрали проверку на ADMIN_NAME)
+    adminPanel.classList.remove('hidden'); 
     
-    // Запуск real-time прослушивания базы данных
     listenToGiftsChanges();
 }
 
@@ -159,29 +154,32 @@ function listenToGiftsChanges() {
     });
 }
 
-// Добавление нового подарка (Только admin)
+// Добавление нового подарка
 addGiftForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (currentUser.toLowerCase() !== ADMIN_NAME.toLowerCase()) return;
     
     const title = giftTitleInput.value.trim();
+    const imageUrlInput = document.getElementById('gift-image-input');
+    const imageUrl = imageUrlInput.value.trim();
+    
     if (title) {
         const giftsRef = ref(db, 'gifts');
         const newGiftRef = push(giftsRef);
         set(newGiftRef, {
             title: title,
+            imageUrl: imageUrl || null, // Сохраняем ссылку, если она есть
             buyers: {}
         }).then(() => {
             giftTitleInput.value = '';
+            imageUrlInput.value = ''; // Очищаем поле с ссылкой
         }).catch(err => console.error("Ошибка добавления:", err));
     }
 });
-
 // Удаление подарка (Только admin)
+// Удаление подарка 
 function deleteGift(id, cardElement) {
-    if (currentUser.toLowerCase() !== ADMIN_NAME.toLowerCase()) return;
+    // Убрали проверку if (currentUser !== ADMIN_NAME) return;
     
-    // Добавляем плавную анимацию исчезновения перед удалением из БД
     cardElement.classList.add('fade-out');
     setTimeout(() => {
         const giftRef = ref(db, `gifts/${id}`);
@@ -259,7 +257,34 @@ function renderGifts() {
             card.style.backgroundColor = `${userColor}08`; // Легкий оттенок цвета пользователя на фон
         }
         
-        // Контент карточки
+        const card = document.createElement('div');
+        card.className = 'gift-card';
+        
+        if (isMeChecked) {
+            const userColor = generateUserColor(currentUser);
+            card.style.borderColor = userColor;
+            card.style.backgroundColor = `${userColor}08`; 
+        }
+
+        // --- НОВЫЙ БЛОК ДЛЯ КАРТИНКИ ---
+        if (gift.imageUrl) {
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'gift-image-container';
+            
+            const img = document.createElement('img');
+            img.src = gift.imageUrl;
+            img.className = 'gift-image';
+            img.alt = gift.title;
+            
+            // Если ссылка битая, просто скрываем контейнер с картинкой
+            img.onerror = () => { imgContainer.style.display = 'none'; };
+            
+            imgContainer.appendChild(img);
+            card.appendChild(imgContainer);
+        }
+        // --- КОНЕЦ НОВОГО БЛОКА ---
+        
+        // Контент карточки (чекбокс и текст)
         const cardContent = document.createElement('div');
         cardContent.className = 'gift-card-content';
         
@@ -317,14 +342,11 @@ function renderGifts() {
         cardContent.appendChild(titleSpan);
         card.appendChild(cardContent);
         
-        // Кнопка удаления (для admin)
-        if (currentUser.toLowerCase() === ADMIN_NAME.toLowerCase()) {
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'btn-delete';
-            deleteBtn.innerHTML = '&#x2715;';
-            deleteBtn.onclick = () => deleteGift(gift.id, card);
-            card.appendChild(deleteBtn);
-        }
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn-delete';
+        deleteBtn.innerHTML = '&#x2715;';
+        deleteBtn.onclick = () => deleteGift(gift.id, card);
+        card.appendChild(deleteBtn);
         
         // Список тех, кто отметили подарок
         const buyersDiv = document.createElement('div');
