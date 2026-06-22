@@ -37,10 +37,14 @@
                 <p class="stats-counter">Создайте новую комнату или выберите существующую</p>
             </div>
             
-            <div class="admin-panel" style="border-top: none;">
-                <form id="create-room-form" style="display: flex; gap: 0.5rem;">
+            <div class="admin-panel rooms-actions-grid" style="border-top: none;">
+                <form id="create-room-form">
                     <input type="text" id="room-name-input" placeholder="Название новой комнаты..." required autocomplete="off">
                     <button type="submit" class="btn-primary">Создать</button>
+                </form>
+                <form id="join-room-form">
+                    <input type="text" id="room-id-input" placeholder="Вставьте код комнаты (ID)..." required autocomplete="off">
+                    <button type="submit" class="btn-secondary">Войти по коду</button>
                 </form>
             </div>
         </header>
@@ -61,8 +65,11 @@
                 </div>
             </div>
             
-            <div class="app-branding">
-                <h1>🎁 Комната: <span id="current-room-name">...</span></h1>
+           <div class="app-branding">
+                <h1>🎁 <span id="current-room-name">...</span></h1>
+                <div class="room-id-display">
+                    Код для приглашения: <code id="current-room-id" title="Нажми, чтобы скопировать">...</code>
+                </div>
                 <div class="stats-counter">
                     Всего подарков: <strong id="total-count">0</strong> | Отмечено вами: <strong id="user-count">0</strong>
                 </div>
