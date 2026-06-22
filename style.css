@@ -100,6 +100,41 @@ input:focus, .sort-select:focus { outline: none; border-color: var(--primary-col
     .gifts-grid { grid-template-columns: 1fr; }
 }
 
+/* Сетка для форм комнат */
+.rooms-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Блок с кодом комнаты */
+.room-id-display {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 1rem 0;
+}
+
+.room-id-display code {
+    background: var(--bg-main);
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    border: 1px dashed var(--primary-color);
+    color: var(--primary-color);
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.room-id-display code:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+@media (max-width: 600px) {
+    .rooms-actions-grid { grid-template-columns: 1fr; }
+}
+
 /* Общие мобильные оптимизации */
 * {
     box-sizing: border-box;
