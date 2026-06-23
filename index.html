@@ -110,12 +110,16 @@
             <div class="gifts-section">
                 <div class="filter-bar">
                     <input type="text" id="search-input" placeholder="🔍 Поиск...">
+                    
+                    <select id="user-filter-select" class="sort-select">
+                        <option value="all">👥 Все участники</option>
+                        </select>
+
                     <select id="sort-select" class="sort-select">
-                        <option value="default">По умолчанию</option>
-                        <option value="rating-desc">Сначала важные</option>
-                        <option value="price-asc">Сначала дешевле</option>
-                        <option value="price-desc">Сначала дороже</option>
-                        <option value="user-asc">По автору (А-Я)</option>
+                        <option value="default">Сортировка: По умолчанию</option>
+                        <option value="rating-desc">⭐ Сначала важные</option>
+                        <option value="price-asc">🪙 Сначала дешевле</option>
+                        <option value="price-desc">💎 Сначала дороже</option>
                     </select>
                 </div>
                 <div id="gifts-container" class="gifts-grid">
