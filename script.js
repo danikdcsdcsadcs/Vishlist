@@ -72,7 +72,7 @@ function showAppScreen(roomId, roomName, roomCreator) {
         });
     };
     
-    // Добавляем себя в список участников комнаты (сохраняем реальное имя для Санты)
+    // Добавляем себя в список участников
     const safeUser = getSafeUserKey(currentUser);
     set(ref(db, `rooms/${roomId}/users_count/${safeUser}`), currentUser);
     
@@ -243,7 +243,6 @@ function listenToRoomData() {
         document.getElementById('room-users-count').textContent = data ? Object.keys(data).length : 1;
     });
 
-    // Слушатель Тайного Санты
     onValue(ref(db, `rooms/${currentRoomId}/secret_santa`), (snapshot) => {
         const data = snapshot.val();
         const banner = document.getElementById('secret-santa-banner');
@@ -252,14 +251,13 @@ function listenToRoomData() {
 
         if (data && data[safeMe]) {
             banner.style.display = 'block';
-            targetSpan.textContent = data[safeMe]; // Показываем реальное имя того, кому дарим
+            targetSpan.textContent = data[safeMe];
         } else {
             banner.style.display = 'none';
         }
     });
 }
 
-// Генерация Тайного Санты
 document.getElementById('start-santa-btn').onclick = () => {
     if(!confirm('Распределить Тайного Санту среди участников?')) return;
     
@@ -269,15 +267,13 @@ document.getElementById('start-santa-btn').onclick = () => {
         
         if (safeKeys.length < 3) return alert("Для Тайного Санты нужно минимум 3 участника!");
 
-        // Перемешиваем массив
         let shuffled = [...safeKeys].sort(() => 0.5 - Math.random());
         let assignments = {};
         
-        // Назначаем по кругу
         for (let i = 0; i < shuffled.length; i++) {
             let giverSafe = shuffled[i];
             let receiverSafe = shuffled[(i + 1) % shuffled.length];
-            assignments[giverSafe] = usersObj[receiverSafe]; // Сохраняем имя получателя
+            assignments[giverSafe] = usersObj[receiverSafe];
         }
         
         set(ref(db, `rooms/${currentRoomId}/secret_santa`), assignments)
@@ -319,9 +315,11 @@ function renderGifts() {
     container.innerHTML = '';
     let processedGifts = giftsData.filter(g => g.title.toLowerCase().includes(searchQuery));
     
+    // ДОБАВЛЕНА НОВАЯ ЛОГИКА СОРТИРОВКИ ПО ПОЛЬЗОВАТЕЛЮ
     if (currentSort === 'price-asc') processedGifts.sort((a, b) => a.price - b.price);
     else if (currentSort === 'price-desc') processedGifts.sort((a, b) => b.price - a.price);
     else if (currentSort === 'rating-desc') processedGifts.sort((a, b) => b.rating - a.rating);
+    else if (currentSort === 'user-asc') processedGifts.sort((a, b) => a.createdBy.localeCompare(b.createdBy));
 
     document.getElementById('total-count').textContent = giftsData.length;
 
@@ -366,10 +364,19 @@ function renderGifts() {
         buyBtn.onclick = () => toggleBuyGift(gift.id, isMeChecked);
         card.appendChild(buyBtn);
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'btn-delete'; deleteBtn.innerHTML = '&#x2715;';
-        deleteBtn.onclick = () => remove(ref(db, `rooms/${currentRoomId}/gifts/${gift.id}`));
-        card.appendChild(deleteBtn);
+        // ИСПРАВЛЕНО: Кнопка удаления теперь рендерится ТОЛЬКО для владельца подарка или владельца комнаты
+        if (gift.createdBy === currentUser || currentRoomCreator === currentUser) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-delete'; 
+            deleteBtn.innerHTML = '&#x2715;';
+            deleteBtn.title = 'Удалить подарок';
+            deleteBtn.onclick = () => {
+                if (confirm('Точно удалить этот подарок?')) {
+                    remove(ref(db, `rooms/${currentRoomId}/gifts/${gift.id}`));
+                }
+            };
+            card.appendChild(deleteBtn);
+        }
 
         container.appendChild(card);
     });
