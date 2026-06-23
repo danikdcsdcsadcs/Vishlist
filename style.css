@@ -52,7 +52,11 @@ input:focus, .sort-select:focus { outline: none; border-color: var(--primary-col
 .app-header { background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
 .header-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .app-branding { text-align: center; margin-bottom: 1.5rem; }
-.filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
+
+/* ОБНОВЛЕНО: Чтобы 3 элемента фильтра красиво вставали в ряд */
+.filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.filter-bar > * { flex: 1; min-width: 200px; }
+
 .admin-panel { max-width: 700px; margin: 0 auto; border-top: 1px dashed var(--border-color); padding-top: 1.25rem; }
 .form-grid { display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 0.5rem; margin-bottom: 0.5rem; }
 .rooms-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -84,7 +88,6 @@ input:focus, .sort-select:focus { outline: none; border-color: var(--primary-col
 .chat-msg { background: var(--bg-main); padding: 0.75rem; border-radius: 12px; border-bottom-left-radius: 2px; max-width: 85%; align-self: flex-start; word-break: break-word; font-size: 0.95rem; }
 .chat-msg.mine { background: var(--primary-color); color: white; border-bottom-left-radius: 12px; border-bottom-right-radius: 2px; align-self: flex-end; }
 .chat-msg-author { font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem; font-weight: 600; }
-/* ВОТ ОНО - ИСПРАВЛЕНИЕ ОГРОМНОЙ АВАТАРКИ */
 .chat-msg-author img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
 
 /* Комнаты и Подарки */
@@ -124,7 +127,6 @@ input:focus, .sort-select:focus { outline: none; border-color: var(--primary-col
     .gifts-section { width: 100%; }
     .mobile-only { display: block; }
     
-    /* Чат выезжает сбоку на телефонах */
     .chat-sidebar { 
         position: fixed; top: 0; right: 0; bottom: 0; height: 100vh; max-height: 100vh; 
         width: 100%; max-width: 400px; z-index: 100; transform: translateX(100%); 
