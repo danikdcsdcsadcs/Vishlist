@@ -25,11 +25,11 @@ let currentRoomId = null;
 let currentRoomName = '';
 let currentRoomCreator = '';
 let giftsData = [];
-let roomUsersList = []; // Хранит всех участников комнаты
+let roomUsersList = []; 
 
 let searchQuery = '';
 let currentSort = 'default';
-let currentUserFilter = 'all'; // Текущий выбранный пользователь для фильтрации
+let currentUserFilter = 'all'; 
 
 // DOM Элементы
 const loginScreen = document.getElementById('login-screen');
@@ -63,7 +63,6 @@ function showAppScreen(roomId, roomName, roomCreator) {
     
     document.getElementById('current-room-name').textContent = roomName;
     
-    // Показываем кнопку Санты только создателю
     document.getElementById('start-santa-btn').style.display = (currentUser === roomCreator) ? 'inline-block' : 'none';
     
     const idDisplay = document.getElementById('current-room-id');
@@ -75,14 +74,13 @@ function showAppScreen(roomId, roomName, roomCreator) {
         });
     };
     
-    // Добавляем себя в список участников
     const safeUser = getSafeUserKey(currentUser);
     set(ref(db, `rooms/${roomId}/users_count/${safeUser}`), currentUser);
     
     roomsScreen.classList.remove('active');
     appScreen.classList.add('active');
     
-    currentUserFilter = 'all'; // Сбрасываем фильтр при входе
+    currentUserFilter = 'all'; 
     document.getElementById('user-filter-select').value = 'all';
     
     listenToRoomData();
@@ -131,7 +129,6 @@ document.getElementById('back-to-rooms-btn').onclick = () => {
     showRoomsScreen();
 };
 
-// Темы и Утилиты
 const toggleTheme = () => {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
@@ -141,6 +138,7 @@ document.getElementById('theme-toggle-rooms').onclick = toggleTheme;
 document.getElementById('theme-toggle-app').onclick = toggleTheme;
 
 function generateUserColor(username) {
+    if (!username) return '#000';
     let hash = 0;
     for (let i = 0; i < username.length; i++) hash = username.charCodeAt(i) + ((hash << 5) - hash);
     return `hsl(${Math.abs(hash) % 360}, 60%, 45%)`;
@@ -230,7 +228,6 @@ function renderRooms() {
 function listenToRoomData() {
     if (!currentRoomId) return;
     
-    // Слушаем подарки
     onValue(ref(db, `rooms/${currentRoomId}/gifts`), (snapshot) => {
         giftsData = [];
         const data = snapshot.val();
@@ -243,19 +240,18 @@ function listenToRoomData() {
                 });
             });
         }
-        updateUserFilterDropdown(); // Обновляем селект авторов
+        updateUserFilterDropdown();
         renderGifts();
     });
 
-    // Слушаем количество и имена участников
     onValue(ref(db, `rooms/${currentRoomId}/users_count`), (snapshot) => {
         const data = snapshot.val();
         roomUsersList = data ? Object.values(data) : [];
-        document.getElementById('room-users-count').textContent = roomUsersList.length;
-        updateUserFilterDropdown(); // Обновляем селект авторов
+        const countEl = document.getElementById('room-users-count');
+        if (countEl) countEl.textContent = roomUsersList.length;
+        updateUserFilterDropdown();
     });
 
-    // Слушаем Тайного Санту
     onValue(ref(db, `rooms/${currentRoomId}/secret_santa`), (snapshot) => {
         const data = snapshot.val();
         const banner = document.getElementById('secret-santa-banner');
@@ -271,49 +267,65 @@ function listenToRoomData() {
     });
 }
 
-// Динамическое заполнение фильтра авторов
+// ИСПРАВЛЕННАЯ БЕЗОПАСНАЯ ФУНКЦИЯ ФИЛЬТРА ПОЛЬЗОВАТЕЛЕЙ
 function updateUserFilterDropdown() {
     const select = document.getElementById('user-filter-select');
+    if (!select) return;
+    
     const currentVal = select.value;
     select.innerHTML = '<option value="all">👥 Все участники</option>';
     
-    // Собираем уникальных пользователей: из списка комнаты + авторов подарков (на всякий случай)
-    const uniqueUsers = new Set(roomUsersList);
-    giftsData.forEach(g => uniqueUsers.add(g.createdBy));
+    const uniqueUsers = new Set();
     
-    Array.from(uniqueUsers).sort((a, b) => a.localeCompare(b)).forEach(user => {
+    // Добавляем текущего
+    if (currentUser) uniqueUsers.add(currentUser);
+    
+    // Добавляем из комнаты
+    if (Array.isArray(roomUsersList)) {
+        roomUsersList.forEach(u => { if (u) uniqueUsers.add(u); });
+    }
+    
+    // Добавляем авторов подарков
+    if (Array.isArray(giftsData)) {
+        giftsData.forEach(g => { if (g && g.createdBy) uniqueUsers.add(g.createdBy); });
+    }
+    
+    // Безопасная фильтрация и сортировка
+    const sortedUsers = Array.from(uniqueUsers)
+        .filter(u => typeof u === 'string' && u.trim() !== '')
+        .sort((a, b) => a.localeCompare(b));
+    
+    sortedUsers.forEach(user => {
         const opt = document.createElement('option');
         opt.value = user;
         opt.textContent = `👤 ${user}`;
         select.appendChild(opt);
     });
     
-    // Возвращаем выбранное значение, если этот юзер еще существует
+    // Восстанавливаем выбор
     if (uniqueUsers.has(currentVal)) {
         select.value = currentVal;
+        currentUserFilter = currentVal;
     } else {
+        select.value = 'all';
         currentUserFilter = 'all';
     }
 }
 
 document.getElementById('start-santa-btn').onclick = () => {
     if(!confirm('Распределить Тайного Санту среди участников?')) return;
-    
     get(ref(db, `rooms/${currentRoomId}/users_count`)).then(snap => {
         const usersObj = snap.val() || {};
         const safeKeys = Object.keys(usersObj);
-        
         if (safeKeys.length < 3) return alert("Для Тайного Санты нужно минимум 3 участника!");
 
         let shuffled = [...safeKeys].sort(() => 0.5 - Math.random());
         let assignments = {};
-        
         for (let i = 0; i < shuffled.length; i++) {
             let giverSafe = shuffled[i];
             let receiverSafe = shuffled[(i + 1) % shuffled.length];
             assignments[giverSafe] = usersObj[receiverSafe];
         }
-        
         set(ref(db, `rooms/${currentRoomId}/secret_santa`), assignments)
             .then(() => alert("Санта успешно распределен! Обновите страницу, если баннер не появился."));
     });
@@ -345,7 +357,6 @@ function toggleBuyGift(giftId, isCurrentlyChecked) {
     else remove(buyerRef);
 }
 
-// Слушатели фильтров
 document.getElementById('search-input').addEventListener('input', (e) => { searchQuery = e.target.value.toLowerCase(); renderGifts(); });
 document.getElementById('sort-select').addEventListener('change', (e) => { currentSort = e.target.value; renderGifts(); });
 document.getElementById('user-filter-select').addEventListener('change', (e) => { currentUserFilter = e.target.value; renderGifts(); });
@@ -354,20 +365,17 @@ function renderGifts() {
     const container = document.getElementById('gifts-container');
     container.innerHTML = '';
     
-    // 1. Фильтрация по поиску
     let processedGifts = giftsData.filter(g => g.title.toLowerCase().includes(searchQuery));
     
-    // 2. ФИЛЬТРАЦИЯ ПО ВЫБРАННОМУ ПОЛЬЗОВАТЕЛЮ
     if (currentUserFilter !== 'all') {
         processedGifts = processedGifts.filter(g => g.createdBy === currentUserFilter);
     }
     
-    // 3. Применение сортировки к оставшимся результатам
     if (currentSort === 'price-asc') processedGifts.sort((a, b) => a.price - b.price);
     else if (currentSort === 'price-desc') processedGifts.sort((a, b) => b.price - a.price);
     else if (currentSort === 'rating-desc') processedGifts.sort((a, b) => b.rating - a.rating);
 
-    document.getElementById('total-count').textContent = processedGifts.length; // Показываем количество именно отфильтрованных подарков
+    document.getElementById('total-count').textContent = processedGifts.length;
 
     if (processedGifts.length === 0) {
         container.innerHTML = '<div class="loading-placeholder">Нет подарков</div>'; return;
@@ -381,9 +389,10 @@ function renderGifts() {
 
         let stars = ''; for(let i=1; i<=5; i++) stars += i <= gift.rating ? '★' : '☆';
 
+        // Аватарка в карточке подарка (тоже с защитой размера)
         const headerDiv = document.createElement('div');
         headerDiv.className = 'gift-header';
-        headerDiv.innerHTML = `<div class="gift-creator"><img src="${getAvatarUrl(gift.createdBy)}" alt="av"> <b>${gift.createdBy}</b></div><div style="color:var(--star-color)">${stars}</div>`;
+        headerDiv.innerHTML = `<div class="gift-creator"><img src="${getAvatarUrl(gift.createdBy)}" style="width:20px; height:20px; border-radius:50%; object-fit:cover; flex-shrink:0;" alt="av"> <b>${gift.createdBy}</b></div><div style="color:var(--star-color)">${stars}</div>`;
         card.appendChild(headerDiv);
 
         if (gift.imageUrl) {
@@ -410,7 +419,6 @@ function renderGifts() {
         buyBtn.onclick = () => toggleBuyGift(gift.id, isMeChecked);
         card.appendChild(buyBtn);
 
-        // Кнопка удаления ТОЛЬКО для владельца подарка или создателя комнаты
         if (gift.createdBy === currentUser || currentRoomCreator === currentUser) {
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'btn-delete'; 
@@ -455,9 +463,11 @@ function listenToChat() {
                 
                 let authorHtml = '';
                 if (!isMine) {
+                    // ИСПРАВЛЕНО: Жестко заданы размеры аватарки через inline-стили (width:24px; height:24px;)
                     authorHtml = `
-                        <div class="chat-msg-author" style="color:${generateUserColor(msg.sender)}">
-                            <img src="${getAvatarUrl(msg.sender)}" alt="av"> ${msg.sender}
+                        <div class="chat-msg-author" style="color:${generateUserColor(msg.sender)}; display:flex; align-items:center; gap:6px; margin-bottom:4px; font-weight:600; font-size:0.8rem;">
+                            <img src="${getAvatarUrl(msg.sender)}" style="width:24px; height:24px; border-radius:50%; flex-shrink:0; object-fit:cover;" alt="av"> 
+                            <span>${msg.sender}</span>
                         </div>`;
                 }
                 
