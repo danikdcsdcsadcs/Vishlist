@@ -25,8 +25,11 @@ let currentRoomId = null;
 let currentRoomName = '';
 let currentRoomCreator = '';
 let giftsData = [];
+let roomUsersList = []; // Хранит всех участников комнаты
+
 let searchQuery = '';
 let currentSort = 'default';
+let currentUserFilter = 'all'; // Текущий выбранный пользователь для фильтрации
 
 // DOM Элементы
 const loginScreen = document.getElementById('login-screen');
@@ -78,6 +81,10 @@ function showAppScreen(roomId, roomName, roomCreator) {
     
     roomsScreen.classList.remove('active');
     appScreen.classList.add('active');
+    
+    currentUserFilter = 'all'; // Сбрасываем фильтр при входе
+    document.getElementById('user-filter-select').value = 'all';
+    
     listenToRoomData();
     listenToChat();
 }
@@ -223,6 +230,7 @@ function renderRooms() {
 function listenToRoomData() {
     if (!currentRoomId) return;
     
+    // Слушаем подарки
     onValue(ref(db, `rooms/${currentRoomId}/gifts`), (snapshot) => {
         giftsData = [];
         const data = snapshot.val();
@@ -235,14 +243,19 @@ function listenToRoomData() {
                 });
             });
         }
+        updateUserFilterDropdown(); // Обновляем селект авторов
         renderGifts();
     });
 
+    // Слушаем количество и имена участников
     onValue(ref(db, `rooms/${currentRoomId}/users_count`), (snapshot) => {
         const data = snapshot.val();
-        document.getElementById('room-users-count').textContent = data ? Object.keys(data).length : 1;
+        roomUsersList = data ? Object.values(data) : [];
+        document.getElementById('room-users-count').textContent = roomUsersList.length;
+        updateUserFilterDropdown(); // Обновляем селект авторов
     });
 
+    // Слушаем Тайного Санту
     onValue(ref(db, `rooms/${currentRoomId}/secret_santa`), (snapshot) => {
         const data = snapshot.val();
         const banner = document.getElementById('secret-santa-banner');
@@ -256,6 +269,31 @@ function listenToRoomData() {
             banner.style.display = 'none';
         }
     });
+}
+
+// Динамическое заполнение фильтра авторов
+function updateUserFilterDropdown() {
+    const select = document.getElementById('user-filter-select');
+    const currentVal = select.value;
+    select.innerHTML = '<option value="all">👥 Все участники</option>';
+    
+    // Собираем уникальных пользователей: из списка комнаты + авторов подарков (на всякий случай)
+    const uniqueUsers = new Set(roomUsersList);
+    giftsData.forEach(g => uniqueUsers.add(g.createdBy));
+    
+    Array.from(uniqueUsers).sort((a, b) => a.localeCompare(b)).forEach(user => {
+        const opt = document.createElement('option');
+        opt.value = user;
+        opt.textContent = `👤 ${user}`;
+        select.appendChild(opt);
+    });
+    
+    // Возвращаем выбранное значение, если этот юзер еще существует
+    if (uniqueUsers.has(currentVal)) {
+        select.value = currentVal;
+    } else {
+        currentUserFilter = 'all';
+    }
 }
 
 document.getElementById('start-santa-btn').onclick = () => {
@@ -307,21 +345,29 @@ function toggleBuyGift(giftId, isCurrentlyChecked) {
     else remove(buyerRef);
 }
 
+// Слушатели фильтров
 document.getElementById('search-input').addEventListener('input', (e) => { searchQuery = e.target.value.toLowerCase(); renderGifts(); });
 document.getElementById('sort-select').addEventListener('change', (e) => { currentSort = e.target.value; renderGifts(); });
+document.getElementById('user-filter-select').addEventListener('change', (e) => { currentUserFilter = e.target.value; renderGifts(); });
 
 function renderGifts() {
     const container = document.getElementById('gifts-container');
     container.innerHTML = '';
+    
+    // 1. Фильтрация по поиску
     let processedGifts = giftsData.filter(g => g.title.toLowerCase().includes(searchQuery));
     
-    // ДОБАВЛЕНА НОВАЯ ЛОГИКА СОРТИРОВКИ ПО ПОЛЬЗОВАТЕЛЮ
+    // 2. ФИЛЬТРАЦИЯ ПО ВЫБРАННОМУ ПОЛЬЗОВАТЕЛЮ
+    if (currentUserFilter !== 'all') {
+        processedGifts = processedGifts.filter(g => g.createdBy === currentUserFilter);
+    }
+    
+    // 3. Применение сортировки к оставшимся результатам
     if (currentSort === 'price-asc') processedGifts.sort((a, b) => a.price - b.price);
     else if (currentSort === 'price-desc') processedGifts.sort((a, b) => b.price - a.price);
     else if (currentSort === 'rating-desc') processedGifts.sort((a, b) => b.rating - a.rating);
-    else if (currentSort === 'user-asc') processedGifts.sort((a, b) => a.createdBy.localeCompare(b.createdBy));
 
-    document.getElementById('total-count').textContent = giftsData.length;
+    document.getElementById('total-count').textContent = processedGifts.length; // Показываем количество именно отфильтрованных подарков
 
     if (processedGifts.length === 0) {
         container.innerHTML = '<div class="loading-placeholder">Нет подарков</div>'; return;
@@ -364,7 +410,7 @@ function renderGifts() {
         buyBtn.onclick = () => toggleBuyGift(gift.id, isMeChecked);
         card.appendChild(buyBtn);
 
-        // ИСПРАВЛЕНО: Кнопка удаления теперь рендерится ТОЛЬКО для владельца подарка или владельца комнаты
+        // Кнопка удаления ТОЛЬКО для владельца подарка или создателя комнаты
         if (gift.createdBy === currentUser || currentRoomCreator === currentUser) {
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'btn-delete'; 
