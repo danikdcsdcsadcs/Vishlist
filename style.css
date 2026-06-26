@@ -22,6 +22,41 @@
     --border-color: #2d3748;
 }
 
+/* Убираем прилипание к стенкам */
+body {
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+/* Красивые карточки комнат */
+.room-card {
+    background: var(--card-bg, #ffffff);
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.room-card:hover {
+    border-color: var(--accent-color, #3498db);
+    transform: translateY(-2px);
+}
+
+/* Мобильная адаптация */
+.app-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.gift-card {
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 15px;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
 
