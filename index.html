@@ -74,7 +74,7 @@
                 </div>
                 <div class="stats-counter">
                     👥 Участников: <strong id="room-users-count">0</strong> | 
-                    🎁 Подарков: <strong id="total-count">0</strong>
+                    📌 Карточек: <strong id="total-count">0</strong>
                 </div>
                 
                 <button id="start-santa-btn" class="btn-secondary" style="display: none; margin: 10px auto;">🎲 Запустить Тайного Санту</button>
@@ -86,9 +86,10 @@
             <div class="admin-panel">
                 <form id="add-gift-form">
                     <div class="form-grid">
-                        <input type="text" id="gift-title-input" placeholder="Название подарка*" required autocomplete="off">
+                        <input type="text" id="gift-title-input" placeholder="Название карточки*" required autocomplete="off">
                         <input type="number" id="gift-price-input" placeholder="Цена (₽)*" required min="0" autocomplete="off">
                         <input type="url" id="gift-image-input" placeholder="Ссылка на фото" autocomplete="off">
+                        <input type="text" id="gift-note-input" placeholder="Примечание (до 50 слов, не обязательно)" autocomplete="off">
                     </div>
                     
                     <div class="rating-input-container">
@@ -101,19 +102,25 @@
                             <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="Просто прикольно">★</label>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary btn-block">Добавить в вишлист</button>
+                    <button type="submit" id="add-btn-submit" class="btn-primary btn-block">Добавить в вишлист</button>
                 </form>
             </div>
         </header>
 
         <main class="app-main room-layout">
             <div class="gifts-section">
+                <div class="tabs-container">
+                    <button class="tab-btn active" data-tab="wish">🎁 Хотелки</button>
+                    <button class="tab-btn" data-tab="date">🥂 Свидания</button>
+                    <button class="tab-btn" data-tab="completed">✅ Исполненное</button>
+                </div>
+
                 <div class="filter-bar">
                     <input type="text" id="search-input" placeholder="🔍 Поиск...">
                     
                     <select id="user-filter-select" class="sort-select">
                         <option value="all">👥 Все участники</option>
-                        </select>
+                    </select>
 
                     <select id="sort-select" class="sort-select">
                         <option value="default">Сортировка: По умолчанию</option>
@@ -123,7 +130,7 @@
                     </select>
                 </div>
                 <div id="gifts-container" class="gifts-grid">
-                    </div>
+                </div>
             </div>
 
             <aside id="chat-panel" class="chat-sidebar">
@@ -132,13 +139,29 @@
                     <button id="close-chat-btn" class="btn-icon mobile-only">✖</button>
                 </div>
                 <div id="chat-messages" class="chat-messages">
-                    </div>
+                </div>
                 <form id="chat-form" class="chat-input-area">
                     <input type="text" id="chat-input" placeholder="Сообщение..." required autocomplete="off">
                     <button type="submit" class="btn-primary">➤</button>
                 </form>
             </aside>
         </main>
+    </div>
+
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Редактировать</h2>
+                <button class="btn-icon close-modal">✖</button>
+            </div>
+            <form id="edit-gift-form">
+                <input type="text" id="edit-title" placeholder="Название*" required>
+                <input type="number" id="edit-price" placeholder="Цена*" required>
+                <input type="url" id="edit-image" placeholder="Ссылка на фото">
+                <input type="text" id="edit-note" placeholder="Примечание (до 50 слов)">
+                <button type="submit" class="btn-primary btn-block" style="margin-top: 15px;">Сохранить изменения</button>
+            </form>
+        </div>
     </div>
 
     <script type="module" src="script.js"></script>
