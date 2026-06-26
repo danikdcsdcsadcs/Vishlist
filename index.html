@@ -86,6 +86,10 @@
             <div class="admin-panel">
                 <form id="add-gift-form">
                     <div class="form-grid">
+                        <select id="gift-type-input" required>
+                            <option value="wish">🎁 Хотелка (Вещь)</option>
+                            <option value="date">🥂 Свидание (Действие)</option>
+                        </select>
                         <input type="text" id="gift-title-input" placeholder="Название карточки*" required autocomplete="off">
                         <input type="number" id="gift-price-input" placeholder="Цена (₽)*" required min="0" autocomplete="off">
                         <input type="url" id="gift-image-input" placeholder="Ссылка на фото" autocomplete="off">
@@ -102,7 +106,7 @@
                             <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="Просто прикольно">★</label>
                         </div>
                     </div>
-                    <button type="submit" id="add-btn-submit" class="btn-primary btn-block">Добавить в вишлист</button>
+                    <button type="submit" id="add-btn-submit" class="btn-primary btn-block">Добавить в список</button>
                 </form>
             </div>
         </header>
