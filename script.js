@@ -34,7 +34,7 @@ let isHubViewActive = true; // По умолчанию показываем ха
 let searchQuery = '';
 let currentSort = 'default';
 let currentUserFilter = 'all'; 
-
+let displayNames = {}; // Хранилище: логин -> красивое имя
 const PRESET_EMOJIS = ['🦊','🐱','🐻','🐼','🦁','🐸','🐵','🦄','🤖','🧙','🥷','🧑‍🚀','🐙','🐹','🐰','🐯'];
 const PRESET_SECTIONS = ['wish', 'date', 'movie', 'completed'];
 
@@ -83,6 +83,42 @@ document.getElementById('btn-add-custom-field').onclick = () => {
     `;
     container.appendChild(fieldDiv);
 };
+
+// Функция для получения имени (если нет кастомного - вернет логин)
+function getDisplayName(login) {
+    if (!login) return 'Аноним';
+    const safe = getSafeUserKey(login);
+    return displayNames[safe] || login;
+}
+
+// Функция для изменения своего имени
+window.changeMyName = async () => {
+    const currentName = getDisplayName(currentUser);
+    const newName = prompt("Введите новое отображаемое имя:", currentName);
+    
+    if (newName && newName.trim() !== "" && newName !== currentName) {
+        const safeMe = getSafeUserKey(currentUser);
+        await set(ref(db, `users/${safeMe}/displayName`), newName.trim());
+        alert("Имя успешно изменено!");
+    }
+};
+
+// Слушатель всех пользователей, чтобы имена обновлялись онлайн у всех
+onValue(ref(db, 'users'), (snap) => {
+    if (snap.exists()) {
+        const usersData = snap.val();
+        for (let safeLogin in usersData) {
+            if (usersData[safeLogin].displayName) {
+                displayNames[safeLogin] = usersData[safeLogin].displayName;
+            }
+        }
+        // Обновляем интерфейс, если мы в комнате
+        if (currentRoomId) {
+            renderGifts();
+            listenToChat(); // Перерисуем чат с новыми именами
+        }
+    }
+});
 
 // Обновленная отправка формы создания раздела
 document.getElementById('create-custom-section-form').addEventListener('submit', async (e) => {
@@ -560,11 +596,26 @@ function renderGifts() {
         card.appendChild(headerDiv);
 
         if (gift.imageUrl) {
-            const imgContainer = document.createElement('div'); imgContainer.className = 'gift-image-container';
-            const img = document.createElement('img'); img.src = gift.imageUrl; img.className = 'gift-image';
-            img.onclick = () => { document.getElementById('lightbox-img').src = gift.imageUrl; document.getElementById('lightbox-modal').classList.add('active'); };
+            const imgContainer = document.createElement('div'); 
+            imgContainer.className = 'gift-image-container';
+            
+            const img = document.createElement('img'); 
+            img.src = gift.imageUrl; 
+            img.className = 'gift-image';
+            img.style.cursor = 'zoom-in'; // Указатель, что можно кликнуть
+            
+            // --- НОВАЯ ЛОГИКА КЛИКА ---
+            img.onclick = () => {
+                const lightbox = document.getElementById('lightbox-modal');
+                const lightboxImg = document.getElementById('lightbox-img');
+                lightboxImg.src = gift.imageUrl;
+                lightbox.classList.add('active');
+            };
+            // --------------------------
+
             img.onerror = () => imgContainer.style.display = 'none';
-            imgContainer.appendChild(img); card.appendChild(imgContainer);
+            imgContainer.appendChild(img); 
+            card.appendChild(imgContainer);
         }
 
         card.innerHTML += `<div class="gift-title">${escapeHTML(gift.title)}</div>`;
