@@ -132,15 +132,18 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 .secret-santa-banner { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); color: #b22222; padding: 0.8rem; border-radius: 10px; font-weight: 600; margin-top: 10px; border: 2px dashed #ff758c; max-width: 500px; margin-left: auto; margin-right: auto; text-align: center;}
 [data-theme="dark"] .secret-santa-banner { background: linear-gradient(135deg, #7028e4 0%, #e5b2ca 100%); color: #fff; }
 
-.app-main { padding: 1.5rem; flex: 1; }
+.app-main { 
+    padding: 0.75rem; /* Отступ уменьшен в 2 раза */
+    flex: 1; 
+}
 .room-layout { 
     display: flex; 
-    gap: 1.5rem; 
+    gap: 0.75rem;     /* Расстояние между блоками уменьшено в 2 раза */
     align-items: flex-start; 
-    max-width: 1200px; /* Ограничиваем максимальную ширину на ПК */
-    margin: 0 auto;    /* Центрируем блок по горизонтали */
+    max-width: 1200px; 
+    margin: 0 auto;    
     width: 100%;       
-    padding: 0 1.5rem; /* Задаем боковые отступы от стен экрана */
+    padding: 0 0.75rem; /* Боковые отступы уменьшены в 2 раза */
 }
 .gifts-section { flex: 1; width: 100%; }
 .gifts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
