@@ -116,13 +116,13 @@
                         <div style="display:flex; gap:10px; margin-bottom:10px;">
                             <input type="text" id="new-section-name" placeholder="Название раздела (Книги)" required>
                             <input type="text" id="new-section-emoji" placeholder="Эмодзи (📚)" style="width:80px; text-align:center;" required>
-                            <button type="submit" class="btn-primary">Создать</button>
                         </div>
-                        <div style="font-size: 0.85rem; display: flex; gap: 15px; color: var(--text-muted);">
-                            <label><input type="checkbox" id="sec-req-price" checked> Требовать Стоимость</label>
-                            <label><input type="checkbox" id="sec-req-link" checked> Поле Ссылки</label>
-                            <label><input type="checkbox" id="sec-req-dur"> Поле Длительности</label>
-                        </div>
+                        
+                        <!-- Контейнер для динамических полей -->
+                        <div id="custom-fields-container" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
+                        
+                        <button type="button" id="btn-add-custom-field" class="btn-secondary" style="margin-bottom:15px; font-size: 0.85rem;">+ Добавить свое поле</button>
+                        <button type="submit" class="btn-primary btn-block">Создать раздел</button>
                     </form>
                 </div>
             </div>
