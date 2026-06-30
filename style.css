@@ -133,7 +133,15 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 [data-theme="dark"] .secret-santa-banner { background: linear-gradient(135deg, #7028e4 0%, #e5b2ca 100%); color: #fff; }
 
 .app-main { padding: 1.5rem; flex: 1; }
-.room-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+.room-layout { 
+    display: flex; 
+    gap: 1.5rem; 
+    align-items: flex-start; 
+    max-width: 1200px; /* Ограничиваем максимальную ширину на ПК */
+    margin: 0 auto;    /* Центрируем блок по горизонтали */
+    width: 100%;       
+    padding: 0 1.5rem; /* Задаем боковые отступы от стен экрана */
+}
 .gifts-section { flex: 1; width: 100%; }
 .gifts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
 
