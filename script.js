@@ -26,7 +26,7 @@ let giftsData = [];
 let roomUsersList = []; 
 let roomUsersAvatars = {}; 
 let roomUsersTitles = {}; 
-let displayNames = {}; // НОВОЕ: Хранилище отображаемых имен
+let displayNames = {}; // Хранилище отображаемых имен
 let currentTab = 'wish'; 
 let editGiftId = null; 
 let customSections = {};
@@ -146,7 +146,7 @@ function loadUserProfile() {
             DOM.rooms.avatar.textContent = userAvatarEmoji;
             document.getElementById('profile-current-avatar').textContent = userAvatarEmoji;
             document.getElementById('global-title').textContent = userTitle;
-            DOM.rooms.userDisplay.textContent = data.displayName || currentUser; // Показываем Display Name
+            DOM.rooms.userDisplay.textContent = data.displayName || currentUser;
         }
     });
 }
@@ -212,7 +212,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             if (snapshot.val().password === pass) loginSuccess(login);
             else alert('Неверный пароль!');
         } else {
-            await set(ref(db, `users/${safeLogin}`), { password: pass, avatar: '🦊', selectedTitle: '👶 Новичок', displayName: login });
+            await set(ref(db, `users/${safeLogin}–`), { password: pass, avatar: '🦊', selectedTitle: '👶 Новичок', displayName: login });
             alert('Аккаунт создан!'); loginSuccess(login);
         }
     } catch (error) { alert('Ошибка входа.'); }
@@ -295,7 +295,7 @@ function listenToRoomData() {
         Object.keys(users).forEach(k => { 
             roomUsersAvatars[k] = users[k].avatar || '🦊'; 
             roomUsersTitles[k] = users[k].selectedTitle || '👶 Новичок';
-            displayNames[k] = users[k].displayName || k; // Обновляем словарь отображаемых имен
+            displayNames[k] = users[k].displayName || k;
         });
         if (!isHubViewActive) renderGifts();
     });
@@ -385,15 +385,13 @@ function buildTabsSystem() {
     const wrapper = document.getElementById('tabs-wrapper');
     wrapper.innerHTML = '';
     const keys = Object.keys(customSections);
-    
-    // Прячем или показываем форму добавления карточки
     const addCardPanel = document.getElementById('add-card-panel');
 
     if (isHubViewActive) {
-        if (addCardPanel) addCardPanel.style.display = 'none'; // Скрываем в хабе
+        if (addCardPanel) addCardPanel.style.display = 'none';
         renderSectionsHub();
     } else {
-        if (addCardPanel) addCardPanel.style.display = 'block'; // Показываем в разделах
+        if (addCardPanel) addCardPanel.style.display = 'block';
         
         document.getElementById('sections-hub-grid').style.display = 'none';
         document.getElementById('active-tab-content-area').style.display = 'block';
@@ -513,6 +511,7 @@ document.getElementById('search-input').addEventListener('input', (e) => { searc
 document.getElementById('sort-select').addEventListener('change', (e) => { currentSort = e.target.value; renderGifts(); });
 DOM.gifts.filterSelect.addEventListener('change', (e) => { currentUserFilter = e.target.value; renderGifts(); });
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ: Полноценное разделение innerHTML и appendChild во избежание уничтожения обработчиков событий
 function renderGifts() {
     DOM.gifts.container.innerHTML = '';
     if (isHubViewActive) return;
@@ -538,59 +537,109 @@ function renderGifts() {
     if (processedGifts.length === 0) { DOM.gifts.container.innerHTML = '<div class="loading-placeholder">В этом разделе пока пусто</div>'; return; }
 
     processedGifts.forEach(gift => {
-        const isMeChecked = !!gift.buyers[getSafeUserKey(currentUser)];
-        const card = document.createElement('div'); card.className = 'gift-card';
+        const isMeChecked = !!(gift.buyers && gift.buyers[getSafeUserKey(currentUser)]);
+        const card = document.createElement('div'); 
+        card.className = 'gift-card';
         if (isMeChecked) card.style.borderColor = 'var(--success-color)';
-
-        if (gift.createdBy === currentUser || currentRoomCreator === currentUser) {
-            const actionsDiv = document.createElement('div'); actionsDiv.className = 'action-buttons';
-            const editBtn = document.createElement('button'); editBtn.className = 'btn-edit-card'; editBtn.innerHTML = '✏️';
-            editBtn.onclick = () => openEditModal(gift); actionsDiv.appendChild(editBtn);
-            const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn-delete'; deleteBtn.innerHTML = '&#x2715;';
-            deleteBtn.onclick = async () => { if (confirm('Удалить карточку?')) await remove(ref(db, `rooms/${currentRoomId}/gifts/${gift.id}`)); };
-            actionsDiv.appendChild(deleteBtn); card.appendChild(actionsDiv);
-        }
 
         let stars = ''; for(let i=1; i<=5; i++) stars += i <= gift.rating ? '★' : '☆';
         const creatorSafeKey = getSafeUserKey(gift.createdBy);
         const creatorAvatar = roomUsersAvatars[creatorSafeKey] || '🦊';
 
-        const headerDiv = document.createElement('div'); headerDiv.className = 'gift-header';
-        // Используем getDisplayName для показа имени создателя карточки
-        headerDiv.innerHTML = `<div class="gift-creator"><span class="avatar-mini">${creatorAvatar}</span> <b>${escapeHTML(getDisplayName(gift.createdBy))}</b></div><div style="color:var(--star-color); margin-right: 60px;">${stars}</div>`;
-        card.appendChild(headerDiv);
-
+        // Формируем строковые шаблоны для опциональных полей структуры
+        let imageHtml = '';
         if (gift.imageUrl) {
-            const imgContainer = document.createElement('div'); imgContainer.className = 'gift-image-container';
-            const img = document.createElement('img'); img.src = gift.imageUrl; img.className = 'gift-image';
-            
-            // ЛОГИКА ОТКРЫТИЯ ЛАЙТБОКСА
-            img.onclick = () => { 
-                document.getElementById('lightbox-img').src = gift.imageUrl; 
-                document.getElementById('lightbox-modal').classList.add('active'); 
-            };
-            
-            img.onerror = () => imgContainer.style.display = 'none';
-            imgContainer.appendChild(img); card.appendChild(imgContainer);
+            imageHtml = `
+                <div class="gift-image-container">
+                    <img src="${escapeHTML(gift.imageUrl)}" class="gift-image" alt="Фото" id="img-${gift.id}">
+                </div>`;
         }
 
-        card.innerHTML += `<div class="gift-title">${escapeHTML(gift.title)}</div>`;
-        if (gift.price > 0) card.innerHTML += `<div class="gift-price">${gift.price.toLocaleString('ru-RU')} ₽</div>`;
-        
-        if(gift.duration) card.innerHTML += `<div class="gift-meta-field">⏱️ Длительность: <b>${escapeHTML(gift.duration)}</b></div>`;
-        if(gift.linkUrl) card.innerHTML += `<div class="gift-meta-field">🛒 Ссылка: <a href="${gift.linkUrl}" target="_blank" rel="noopener noreferrer">Перейти в магазин →</a></div>`;
-        if (gift.note) card.innerHTML += `<div class="gift-note">📝 ${escapeHTML(gift.note)}</div>`;
+        let priceHtml = gift.price > 0 ? `<div class="gift-price">${gift.price.toLocaleString('ru-RU')} ₽</div>` : '';
+        let durationHtml = gift.duration ? `<div class="gift-meta-field">⏱️ Длительность: <b>${escapeHTML(gift.duration)}</b></div>` : '';
+        let linkHtml = gift.linkUrl ? `<div class="gift-meta-field">🛒 Ссылка: <a href="${escapeHTML(gift.linkUrl)}" target="_blank" rel="noopener noreferrer">Перейти в магазин →</a></div>` : '';
+        let noteHtml = gift.note ? `<div class="gift-note">📝 ${escapeHTML(gift.note)}</div>` : '';
 
-        const buyersDiv = document.createElement('div'); buyersDiv.className = 'gift-buyers';
-        Object.keys(gift.buyers).forEach(buyer => {
-            const tag = document.createElement('span'); tag.className = 'buyer-tag'; tag.textContent = getDisplayName(buyer);
-            tag.style.backgroundColor = generateUserColor(buyer); buyersDiv.appendChild(tag);
-        });
+        // ВАЖНО: Записываем весь статичный HTML-каркас за ОДИН раз. Обработчики событий вешаем строго ПОСЛЕ.
+        card.innerHTML = `
+            <div class="gift-header">
+                <div class="gift-creator"><span class="avatar-mini">${creatorAvatar}</span> <b>${escapeHTML(getDisplayName(gift.createdBy))}</b></div>
+                <div style="color:var(--star-color); margin-right: 60px;">${stars}</div>
+            </div>
+            ${imageHtml}
+            <div class="gift-title">${escapeHTML(gift.title)}</div>
+            ${priceHtml}
+            ${durationHtml}
+            ${linkHtml}
+            ${noteHtml}
+        `;
+
+        // 1. Активация Лайтбокса для картинок
+        if (gift.imageUrl) {
+            const imgEl = card.querySelector(`#img-${gift.id}`);
+            if (imgEl) {
+                imgEl.onclick = (e) => {
+                    e.stopPropagation();
+                    document.getElementById('lightbox-img').src = gift.imageUrl; 
+                    document.getElementById('lightbox-modal').classList.add('active'); 
+                };
+                imgEl.onerror = () => {
+                    const container = imgEl.closest('.gift-image-container');
+                    if (container) container.style.display = 'none';
+                };
+            }
+        }
+
+        // 2. Кнопки управления (Удалить / Изменить) — создаются элементами и не затираются
+        if (gift.createdBy === currentUser || currentRoomCreator === currentUser) {
+            const actionsDiv = document.createElement('div'); 
+            actionsDiv.className = 'action-buttons';
+            
+            const editBtn = document.createElement('button'); 
+            editBtn.className = 'btn-edit-card'; 
+            editBtn.innerHTML = '✏️';
+            editBtn.onclick = (e) => {
+                e.stopPropagation();
+                openEditModal(gift);
+            };
+            actionsDiv.appendChild(editBtn);
+            
+            const deleteBtn = document.createElement('button'); 
+            deleteBtn.className = 'btn-delete'; 
+            deleteBtn.innerHTML = '&#x2715;';
+            deleteBtn.onclick = async (e) => { 
+                e.stopPropagation();
+                if (confirm('Удалить карточку?')) {
+                    await remove(ref(db, `rooms/${currentRoomId}/gifts/${gift.id}`));
+                }
+            };
+            actionsDiv.appendChild(deleteBtn); 
+            
+            card.appendChild(actionsDiv);
+        }
+
+        // 3. Динамический блок списка исполнителей желаний
+        const buyersDiv = document.createElement('div'); 
+        buyersDiv.className = 'gift-buyers';
+        if (gift.buyers) {
+            Object.keys(gift.buyers).forEach(buyer => {
+                const tag = document.createElement('span'); 
+                tag.className = 'buyer-tag'; 
+                tag.textContent = getDisplayName(buyer);
+                tag.style.backgroundColor = generateUserColor(buyer); 
+                buyersDiv.appendChild(tag);
+            });
+        }
         card.appendChild(buyersDiv);
 
-        const buyBtn = document.createElement('button'); buyBtn.className = isMeChecked ? 'btn-buy-action active' : 'btn-buy-action';
+        // 4. Интерактивная кнопка бронирования ("Взяться за исполнение")
+        const buyBtn = document.createElement('button'); 
+        buyBtn.className = isMeChecked ? 'btn-buy-action active' : 'btn-buy-action';
         buyBtn.innerHTML = isMeChecked ? '✅ Вы исполняете это' : '🛍️ Взяться за исполнение';
-        buyBtn.onclick = () => toggleBuyGift(gift.id, isMeChecked);
+        buyBtn.onclick = (e) => {
+            e.stopPropagation();
+            toggleBuyGift(gift.id, isMeChecked);
+        };
         card.appendChild(buyBtn);
 
         DOM.gifts.container.appendChild(card);
@@ -613,7 +662,11 @@ document.getElementById('edit-gift-form').addEventListener('submit', async (e) =
     const duration = document.getElementById('edit-duration').value.trim(); const note = document.getElementById('edit-note').value.trim();
 
     if (note.split(/\s+/).length > 50) return alert('Примечание не более 50 слов!');
-    try { await update(ref(db, `rooms/${currentRoomId}/gifts/${editGiftId}`), { title, price, imageUrl, linkUrl, duration, note }); document.getElementById('edit-modal').classList.remove('active'); editGiftId = null; } catch (error) { }
+    try { 
+        await update(ref(db, `rooms/${currentRoomId}/gifts/${editGiftId}`), { title, price, imageUrl, linkUrl, duration, note }); 
+        document.getElementById('edit-modal').classList.remove('active'); 
+        editGiftId = null; 
+    } catch (error) { console.error("Ошибка обновления данных:", error); }
 });
 
 function calculateAchievements() {
@@ -666,7 +719,7 @@ function showOtherProfile(username) {
     if (username === currentUser) return;
     
     const safeName = getSafeUserKey(username);
-    document.getElementById('other-profile-name').textContent = getDisplayName(username); // Используем Display Name
+    document.getElementById('other-profile-name').textContent = getDisplayName(username);
     document.getElementById('other-profile-avatar').textContent = roomUsersAvatars[safeName] || '🦊';
     document.getElementById('other-profile-title').textContent = roomUsersTitles[safeName] || '👶 Новичок';
 
@@ -706,7 +759,7 @@ function listenToSchedule() {
                 
                 block.innerHTML = `
                     <div class="time-tag">${escapeHTML(item.start)} - ${escapeHTML(item.end)}</div>
-                    <div class="task-body"><span><b>${userAv} ${escapeHTML(getDisplayName(item.user))}:</b> ${escapeHTML(item.text)}</span></div>
+                    <div class="task-body"><span><b>${userAv} ${escapeHTML(getDisplayName(item.user)}:</b> ${escapeHTML(item.text)}</span></div>
                 `;
                 if(item.user === currentUser) {
                     const del = document.createElement('span'); del.className = 'del-task'; del.innerHTML = '✖';
@@ -758,7 +811,6 @@ function listenToChat() {
                     authorDiv.style.cssText += 'display:flex; align-items:center; gap:6px; margin-bottom:4px; font-weight:600; font-size:0.8rem;';
                     
                     const nameSpan = document.createElement('span');
-                    // Используем getDisplayName
                     nameSpan.textContent = `${senderAv} ${getDisplayName(msg.sender)}`;
                     nameSpan.onclick = () => showOtherProfile(msg.sender);
                     authorDiv.appendChild(nameSpan);
@@ -778,7 +830,7 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
             await push(ref(db, `rooms/${currentRoomId}/messages`), { sender: currentUser, text: text, timestamp: Date.now() }); 
             await analyzeChatSentiment(text); 
             DOM.chat.input.value = ''; 
-        } catch (error) { } 
+        } catch (error) { console.error("Ошибка отправки сообщения:", error); } 
     }
 });
 
