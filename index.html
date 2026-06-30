@@ -65,6 +65,7 @@
             <div class="header-main">
                 <button id="back-to-rooms-btn" class="btn-secondary">← К комнатам</button>
                 <div class="header-actions">
+                    <button id="toggle-todo-btn" class="btn-primary">📋 Дела</button>
                     <button id="toggle-chat-btn" class="btn-primary">💬 Чат</button>
                     <button id="theme-toggle-app" class="btn-icon" title="Сменить тему">🌓</button>
                 </div>
@@ -86,7 +87,8 @@
                     <div class="tamagochi-header">
                         <span class="tamagochi-pet" id="pet-emoji">🥚</span>
                         <div>
-                            <div class="tamagochi-title">Дух Комнаты: <b id="pet-status">Спит</b></div>
+                            <div class="tamagochi-title">Дух Комнаты: <b id="pet-status">Спит</b> <button id="edit-spirit-btn" class="btn-icon" style="font-size:1rem;" title="Изменить имя">✏️</button></div>
+                            <div id="spirit-custom-name" style="font-size:0.85rem; font-weight:bold; color:var(--primary-color);"></div>
                         </div>
                     </div>
                     <div class="tamagochi-stats">
@@ -102,21 +104,6 @@
                 🎅 Тайный Санта: вы дарите подарок пользователю <strong id="santa-target">...</strong>! 🤫
             </div>
 
-            <!-- ЕЖЕДНЕВНЫЙ СПИСОК ДЕЛ -->
-            <div class="schedule-section">
-                <h3>📅 Расписание & Список дел на сегодня</h3>
-                <form id="add-schedule-form" class="schedule-form">
-                    <input type="text" id="task-text" placeholder="Что делаете? (например: Сплю, Работаю)" required>
-                    <div class="time-inputs">
-                        <input type="time" id="task-start" required>
-                        <span>до</span>
-                        <input type="time" id="task-end" required>
-                    </div>
-                    <button type="submit" class="btn-primary">Добавить в таймлайн</button>
-                </form>
-                <div id="schedule-timeline" class="schedule-timeline"></div>
-            </div>
-
             <!-- УПРАВЛЕНИЕ РАЗДЕЛАМИ -->
             <div class="sections-manager">
                 <div class="tabs-container" id="tabs-wrapper">
@@ -125,10 +112,17 @@
                 <button id="btn-show-add-section" class="btn-secondary" style="margin: 0 auto 1.5rem auto; display: block; font-size: 0.85rem;">🛠️ Настройка разделов</button>
                 
                 <div id="add-section-panel" class="admin-panel" style="display: none; margin-bottom: 1.5rem;">
-                    <form id="create-custom-section-form" style="display:flex; gap:10px;">
-                        <input type="text" id="new-section-name" placeholder="Название раздела (например: Фильмы, Книги)" required>
-                        <input type="text" id="new-section-emoji" placeholder="Эмодзи (🎬)" style="width:80px; text-align:center;" required>
-                        <button type="submit" class="btn-primary">Создать раздел</button>
+                    <form id="create-custom-section-form">
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <input type="text" id="new-section-name" placeholder="Название раздела (Книги)" required>
+                            <input type="text" id="new-section-emoji" placeholder="Эмодзи (📚)" style="width:80px; text-align:center;" required>
+                            <button type="submit" class="btn-primary">Создать</button>
+                        </div>
+                        <div style="font-size: 0.85rem; display: flex; gap: 15px; color: var(--text-muted);">
+                            <label><input type="checkbox" id="sec-req-price" checked> Требовать Стоимость</label>
+                            <label><input type="checkbox" id="sec-req-link" checked> Поле Ссылки</label>
+                            <label><input type="checkbox" id="sec-req-dur"> Поле Длительности</label>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -176,14 +170,14 @@
                             <option value="price-desc">💎 Сначала дороже</option>
                         </select>
                     </div>
-                    <div class="section-cost-banner" id="section-cost-summary">💰 Ср. стоимость на человека в этом разделе: <span>0 ₽</span></div>
+                    <div class="section-cost-banner" id="section-cost-summary">💰 Общая: <span>0 ₽</span> | На человека: <span>0 ₽</span></div>
                     <div id="gifts-container" class="gifts-grid"></div>
                 </div>
             </div>
 
             <!-- ЧАТ -->
-            <aside id="chat-panel" class="chat-sidebar">
-                <div class="chat-header">
+            <aside id="chat-panel" class="sidebar-panel">
+                <div class="sidebar-header">
                     <h3>💬 Чат комнаты</h3>
                     <button id="close-chat-btn" class="btn-icon mobile-only">✖</button>
                 </div>
@@ -192,6 +186,26 @@
                     <input type="text" id="chat-input" placeholder="Сообщение..." required autocomplete="off">
                     <button type="submit" class="btn-primary">➤</button>
                 </form>
+            </aside>
+
+            <!-- СПИСОК ДЕЛ (СБОКУ) -->
+            <aside id="todo-panel" class="sidebar-panel">
+                <div class="sidebar-header">
+                    <h3>📅 Список дел на сегодня</h3>
+                    <button id="close-todo-btn" class="btn-icon mobile-only">✖</button>
+                </div>
+                <div class="schedule-section sidebar-content">
+                    <form id="add-schedule-form" class="schedule-form">
+                        <input type="text" id="task-text" placeholder="Что делаете?" required>
+                        <div class="time-inputs">
+                            <input type="time" id="task-start" required>
+                            <span>до</span>
+                            <input type="time" id="task-end" required>
+                        </div>
+                        <button type="submit" class="btn-primary btn-block" style="margin-top:8px;">Добавить</button>
+                    </form>
+                    <div id="schedule-timeline" class="schedule-timeline"></div>
+                </div>
             </aside>
         </main>
     </div>
@@ -208,9 +222,32 @@
                 <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">Выберите ваш Аватар-Эмодзи:</p>
                 <div class="emoji-picker-grid" id="emoji-selector"></div>
             </div>
+            <div class="titles-zone" style="margin-bottom: 15px;">
+                <h3>👑 Выберите звание</h3>
+                <div id="profile-titles-list" style="display:flex; flex-direction:column; gap:5px; font-size:0.9rem; margin-top:10px;"></div>
+            </div>
             <div class="achievements-zone">
-                <h3>🏆 Ваши достижения (в комнате)</h3>
+                <h3>🏆 Ваши достижения</h3>
                 <div id="profile-achievements-list" class="achievements-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: ЧУЖОЙ ПРОФИЛЬ -->
+    <div id="other-profile-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Профиль участника</h2>
+                <button class="btn-icon close-other-profile-modal">✖</button>
+            </div>
+            <div style="text-align:center; margin-bottom:20px;">
+                <div class="current-modal-avatar" id="other-profile-avatar">🦊</div>
+                <h3 id="other-profile-name">Имя</h3>
+                <span id="other-profile-title" class="title-badge" style="font-size:0.9rem;">👶 Новичок</span>
+            </div>
+            <div class="achievements-zone">
+                <h3>🏆 Достижения в комнате</h3>
+                <div id="other-profile-achievements" class="achievements-container"></div>
             </div>
         </div>
     </div>
