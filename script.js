@@ -63,6 +63,60 @@ function init() {
     buildEmojiPicker();
     if (currentUser) { loadUserProfile(); showRoomsScreen(); } else { showLoginScreen(); }
 }
+// Логика добавления новых полей через плюс
+document.getElementById('btn-add-custom-field').onclick = () => {
+    const container = document.getElementById('custom-fields-container');
+    const fieldDiv = document.createElement('div');
+    fieldDiv.style.cssText = 'display:flex; gap:10px; align-items:center; background: var(--bg-main); padding: 8px; border-radius: 8px;';
+    
+    fieldDiv.innerHTML = `
+        <input type="text" class="custom-field-name" placeholder="Название (напр. Автор)" required style="flex:1; margin-bottom:0; padding:0.5rem;">
+        <select class="custom-field-type" style="width:110px; margin-bottom:0; padding:0.5rem;">
+            <option value="text">Текст</option>
+            <option value="number">Число</option>
+            <option value="url">Ссылка</option>
+        </select>
+        <label style="font-size: 0.8rem; display:flex; align-items:center; gap:4px; margin:0;">
+            <input type="checkbox" class="custom-field-req"> Важно
+        </label>
+        <button type="button" class="btn-delete" onclick="this.parentElement.remove()" style="width:28px;height:28px;padding:0;margin:0;">✖</button>
+    `;
+    container.appendChild(fieldDiv);
+};
+
+// Обновленная отправка формы создания раздела
+document.getElementById('create-custom-section-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('new-section-name').value.trim();
+    const emoji = document.getElementById('new-section-emoji').value.trim();
+    
+    // Собираем все созданные пользователем поля
+    const customFields = [];
+    document.querySelectorAll('#custom-fields-container > div').forEach(row => {
+        customFields.push({
+            name: row.querySelector('.custom-field-name').value.trim(),
+            type: row.querySelector('.custom-field-type').value,
+            required: row.querySelector('.custom-field-req').checked
+        });
+    });
+    
+    if(name && emoji) {
+        const cleanKey = 'custom_' + Date.now();
+        await set(ref(db, `rooms/${currentRoomId}/sections/${cleanKey}`), { 
+            name, 
+            emoji, 
+            reqPrice: false, // Отключаем дефолтные, так как теперь есть кастомные
+            reqLink: false, 
+            reqDur: false,
+            fields: customFields // Массив с настройками полей улетает в БД
+        });
+        
+        document.getElementById('new-section-name').value = ''; 
+        document.getElementById('new-section-emoji').value = '';
+        document.getElementById('custom-fields-container').innerHTML = ''; // Очищаем форму
+        document.getElementById('add-section-panel').style.display = 'none';
+    }
+});
 
 function loadUserProfile() {
     const safeUser = getSafeUserKey(currentUser);
