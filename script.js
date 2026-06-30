@@ -621,15 +621,33 @@ function calculateAchievements() {
     const achievements = [];
     const availableTitles = ['👶 Новичок'];
 
-    if(myCreatedCount >= 1) achievements.push({ text: '💡 Мечтатель', desc: 'Добавил свою первую хотелку' });
+    // --- Достижения за добавление карточек ---
+    if(myCreatedCount >= 1) achievements.push({ text: '💡 Искорка', desc: 'Добавил свою первую хотелку' });
     if(myCreatedCount >= 5) availableTitles.push('📝 Архивариус Желаний');
     if(myCreatedCount >= 10) achievements.push({ text: '👑 Генератор Идей', desc: 'Добавил более 10 хотелок' });
+    if(myCreatedCount >= 25) { 
+        achievements.push({ text: '🐉 Дракон Желаний', desc: 'Собрал гору сокровищ в вишлисте (25+)' }); 
+        availableTitles.push('🌌 Властелин Вселенной'); 
+    }
+    if(myCreatedCount >= 50) { 
+        achievements.push({ text: '🏆 Абсолют', desc: 'Добавил 50+ карточек. Тебя не остановить!' }); 
+        availableTitles.push('♾️ Бесконечность'); 
+    }
     
+    // --- Достижения за исполнение (подарки) ---
     if(myGivenCount >= 1) achievements.push({ text: '❤️ Добряк', desc: 'Взялся исполнить чье-то желание' });
     if(myGivenCount >= 2) availableTitles.push('✨ Волшебник');
     if(myGivenCount >= 5) {
         achievements.push({ text: '🎅 Настоящий Санта', desc: 'Исполнил 5 и более желаний в комнате!' });
         availableTitles.push('🔱 Главный Благодетель');
+    }
+    if(myGivenCount >= 15) { 
+        achievements.push({ text: '👼 Архангел', desc: 'Подарил кусочек рая 15 раз' }); 
+        availableTitles.push('🧞‍♂️ Джинн из лампы'); 
+    }
+    if(myGivenCount >= 30) { 
+        achievements.push({ text: '💎 Меценат Века', desc: 'Исполнил 30 желаний. Легенда!' }); 
+        availableTitles.push('🌟 Хранитель Света'); 
     }
 
     availableTitles.forEach(titleText => {
