@@ -71,17 +71,32 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 #bar-kind { background: #51cf66; }
 #bar-anger { background: #f03e3e; }
 
+/* Боковые панели (Чат и Список Дел) */
+.sidebar-panel { width: 320px; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); display: none; flex-direction: column; height: calc(100vh - 100px); position: sticky; top: 20px; overflow: hidden; }
+.sidebar-panel.open { display: flex; }
+.sidebar-header { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.sidebar-content { flex: 1; overflow-y: auto; padding: 1rem; }
+
+/* Чат */
+.chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
+.chat-msg { background: var(--bg-main); padding: 0.75rem; border-radius: 12px; border-bottom-left-radius: 2px; max-width: 90%; align-self: flex-start; font-size: 0.95rem; line-height: 1.4; }
+.chat-msg.mine { background: #e7f5ff; border-bottom-left-radius: 12px; border-bottom-right-radius: 2px; align-self: flex-end; }
+[data-theme="dark"] .chat-msg.mine { background: #2c4a6b; }
+.chat-msg-author span { cursor: pointer; }
+.chat-msg-author span:hover { text-decoration: underline; }
+.chat-input-area { display: flex; padding: 1rem; border-top: 1px solid var(--border-color); gap: 0.5rem; background: var(--bg-card); }
+.chat-input-area input { margin-bottom: 0; }
+.chat-input-area button { padding: 0 1.2rem; }
+
 /* Список Дел (Расписание) */
-.schedule-section { max-width: 700px; margin: 15px auto; background: var(--bg-card); padding: 15px; border-radius: var(--radius); border: 1px solid var(--border-color); }
-.schedule-section h3 { font-size: 1rem; margin-bottom: 10px; }
-.schedule-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
-.schedule-form input[type="text"] { flex: 1; min-width: 180px; }
+.schedule-section { border: none; }
+.schedule-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
 .time-inputs { display: flex; align-items: center; gap: 5px; }
-.time-inputs input { width: 85px; padding: 0.5rem; font-size: 0.85rem; }
-.schedule-timeline { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
-.timeline-item { background: var(--bg-main); padding: 8px 12px; border-radius: 8px; border-left: 4px solid var(--primary-color); font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
-.time-tag { font-weight: 700; color: var(--text-muted); margin-right: 10px; font-family: monospace; }
-.task-body { flex: 1; }
+.time-inputs input { flex: 1; padding: 0.5rem; font-size: 0.85rem; }
+.schedule-timeline { display: flex; flex-direction: column; gap: 6px; }
+.timeline-item { background: var(--bg-main); padding: 8px 12px; border-radius: 8px; border-left: 4px solid var(--primary-color); font-size: 0.85rem; display: flex; flex-direction: column; gap: 5px; }
+.time-tag { font-weight: 700; color: var(--text-muted); font-family: monospace; }
+.task-body { flex: 1; display:flex; justify-content: space-between; align-items:center; }
 .del-task { cursor: pointer; color: #fa5252; font-weight: bold; margin-left: 10px; }
 
 /* Разделы Хаба */
@@ -101,9 +116,11 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 
 /* Табы */
 .tabs-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap; }
-.tab-btn { background: var(--bg-card); border: 2px solid var(--border-color); color: var(--text-muted); padding: 0.6rem 1.2rem; border-radius: 20px; font-weight: 600; cursor: pointer; transition: var(--transition); font-size: 0.95rem; }
+.tab-btn { display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 2px solid var(--border-color); color: var(--text-muted); padding: 0.6rem 1.2rem; border-radius: 20px; font-weight: 600; cursor: pointer; transition: var(--transition); font-size: 0.95rem; }
 .tab-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
 .tab-btn.active { background: var(--primary-color); border-color: var(--primary-color); color: white; }
+.btn-delete-section { background: transparent; border: none; font-size: 1rem; color: inherit; cursor: pointer; opacity: 0.7; }
+.btn-delete-section:hover { color: #fa5252; opacity: 1; }
 
 .filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
 .filter-bar > * { flex: 1; min-width: 200px; }
@@ -166,7 +183,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; padding: 10px; }
 .modal.active { display: flex; }
-.modal-content { background: var(--bg-card); padding: 25px; border-radius: var(--radius); width: 100%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.modal-content { background: var(--bg-card); padding: 25px; border-radius: var(--radius); width: 100%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .modal-content input { margin-bottom: 10px; }
 
@@ -176,33 +193,21 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 .star-rating label { font-size: 1.8rem; color: #e4e5e9; cursor: pointer; transition: color 0.2s; }
 .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: var(--star-color); }
 
-.chat-sidebar { width: 320px; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; height: calc(100vh - 100px); position: sticky; top: 20px; overflow: hidden; }
-.chat-header { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-.chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
-.chat-msg { background: var(--bg-main); padding: 0.75rem; border-radius: 12px; border-bottom-left-radius: 2px; max-width: 90%; align-self: flex-start; font-size: 0.95rem; line-height: 1.4; }
-.chat-msg.mine { background: #e7f5ff; border-bottom-left-radius: 12px; border-bottom-right-radius: 2px; align-self: flex-end; }
-[data-theme="dark"] .chat-msg.mine { background: #2c4a6b; }
-.chat-input-area { display: flex; padding: 1rem; border-top: 1px solid var(--border-color); gap: 0.5rem; background: var(--bg-card); }
-.chat-input-area input { margin-bottom: 0; }
-.chat-input-area button { padding: 0 1.2rem; }
-
 .mobile-only { display: none; }
 
 @media (max-width: 900px) {
     .room-layout { flex-direction: column; }
-    .chat-sidebar { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; z-index: 100; border-radius: 0; transition: right 0.3s ease; display: flex !important; }
-    .chat-sidebar.open { right: 0; }
+    .sidebar-panel { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; z-index: 100; border-radius: 0; transition: right 0.3s ease; display: flex !important; }
+    .sidebar-panel.open { right: 0; }
     .mobile-only { display: block; }
     .form-grid { grid-template-columns: 1fr; }
     .gifts-grid { grid-template-columns: 1fr; gap: 1rem; }
     .header-main { flex-direction: column; align-items: flex-start; gap: 15px; }
-    .header-actions { width: 100%; display: flex; justify-content: space-between; }
+    .header-actions { width: 100%; display: flex; justify-content: space-between; gap: 5px; }
     .tabs-container { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px; justify-content: flex-start; width: 100%; }
     .tab-btn { flex-shrink: 0; }
     .filter-bar { flex-direction: column; }
     .filter-bar > * { width: 100%; min-width: unset; }
     .room-header-flex { flex-direction: column; align-items: stretch; }
     .tamagochi-card { max-width: 100%; }
-    .schedule-form { flex-direction: column; }
-    .time-inputs { width: 100%; justify-content: space-between; }
 }
