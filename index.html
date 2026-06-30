@@ -10,7 +10,6 @@
 </head>
 <body>
 
-    <!-- ЭКРАН 1: АВТОРИЗАЦИЯ -->
     <div id="login-screen" class="screen active">
         <div class="login-card">
             <h1>Добро пожаловать!</h1>
@@ -23,7 +22,6 @@
         </div>
     </div>
 
-    <!-- ЭКРАН 2: ВЫБОР КОМНАТЫ -->
     <div id="rooms-screen" class="screen">
         <header class="app-header">
             <div class="header-main">
@@ -59,7 +57,6 @@
         </main>
     </div>
 
-    <!-- ЭКРАН 3: КОМНАТА -->
     <div id="app-screen" class="screen">
         <header class="app-header">
             <div class="header-main">
@@ -82,7 +79,6 @@
                     <button id="start-santa-btn" class="btn-secondary" style="display: none; margin: 10px 0;">🎲 Запустить Тайного Санту</button>
                 </div>
 
-                <!-- ВИДЖЕТ ТАМАГОЧИ КОМНАТЫ -->
                 <div class="tamagochi-card" id="tamagochi-widget">
                     <div class="tamagochi-header">
                         <span class="tamagochi-pet" id="pet-emoji">🥚</span>
@@ -104,11 +100,9 @@
                 🎅 Тайный Санта: вы дарите подарок пользователю <strong id="santa-target">...</strong>! 🤫
             </div>
 
-            <!-- УПРАВЛЕНИЕ РАЗДЕЛАМИ -->
             <div class="sections-manager">
                 <div class="tabs-container" id="tabs-wrapper">
-                    <!-- Будет заполняться динамически -->
-                </div>
+                    </div>
                 <button id="btn-show-add-section" class="btn-secondary" style="margin: 0 auto 1.5rem auto; display: block; font-size: 0.85rem;">🛠️ Настройка разделов</button>
                 
                 <div id="add-section-panel" class="admin-panel" style="display: none; margin-bottom: 1.5rem;">
@@ -118,7 +112,6 @@
                             <input type="text" id="new-section-emoji" placeholder="Эмодзи (📚)" style="width:80px; text-align:center;" required>
                         </div>
                         
-                        <!-- Контейнер для динамических полей -->
                         <div id="custom-fields-container" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
                         
                         <button type="button" id="btn-add-custom-field" class="btn-secondary" style="margin-bottom:15px; font-size: 0.85rem;">+ Добавить свое поле</button>
@@ -127,8 +120,7 @@
                 </div>
             </div>
 
-            <!-- ФОРМА ДОБАВЛЕНИЯ КАРТОЧЕК -->
-            <div class="admin-panel">
+            <div class="admin-panel" id="add-card-panel">
                 <form id="add-gift-form">
                     <div class="form-grid">
                         <input type="text" id="gift-title-input" placeholder="Название карточки*" required autocomplete="off">
@@ -156,7 +148,6 @@
 
         <main class="app-main room-layout">
             <div class="gifts-section">
-                <!-- СВОРАЧИВАЕМАЯ СЕТКА РАЗДЕЛОВ (ЕСЛИ ИХ >= 4) -->
                 <div id="sections-hub-grid" class="sections-hub-grid" style="display: none;"></div>
 
                 <div id="active-tab-content-area">
@@ -175,7 +166,6 @@
                 </div>
             </div>
 
-            <!-- ЧАТ -->
             <aside id="chat-panel" class="sidebar-panel">
                 <div class="sidebar-header">
                     <h3>💬 Чат комнаты</h3>
@@ -188,7 +178,6 @@
                 </form>
             </aside>
 
-            <!-- СПИСОК ДЕЛ (СБОКУ) -->
             <aside id="todo-panel" class="sidebar-panel">
                 <div class="sidebar-header">
                     <h3>📅 Список дел на сегодня</h3>
@@ -210,7 +199,6 @@
         </main>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: НАСТРОЙКА ПРОФИЛЯ -->
     <div id="profile-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -220,7 +208,9 @@
             <div class="avatar-setup-zone">
                 <div class="current-modal-avatar" id="profile-current-avatar">🦊</div>
                 <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">Выберите ваш Аватар-Эмодзи:</p>
-                <div class="emoji-picker-grid" id="emoji-selector"></div>
+                <div class="emoji-picker-grid" id="emoji-selector" style="margin-bottom: 15px;"></div>
+                
+                <button type="button" onclick="changeMyName()" class="btn-secondary btn-block" style="font-size: 0.9rem;">✏️ Изменить отображаемое имя</button>
             </div>
             <div class="titles-zone" style="margin-bottom: 15px;">
                 <h3>👑 Выберите звание</h3>
@@ -233,7 +223,6 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: ЧУЖОЙ ПРОФИЛЬ -->
     <div id="other-profile-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -252,7 +241,6 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: РЕДАКТИРОВАНИЕ КАРТОЧКИ -->
     <div id="edit-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -271,7 +259,6 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: ЛАЙТБОКС ДЛЯ ФОТО -->
     <div id="lightbox-modal" class="lightbox" onclick="this.classList.remove('active')">
         <img id="lightbox-img" src="" alt="Полноэкранное фото">
     </div>
