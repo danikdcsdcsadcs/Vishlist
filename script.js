@@ -244,16 +244,22 @@ function listenToRoomData() {
     });
 
     onValue(ref(db, `rooms/${currentRoomId}/sections`), (snapshot) => {
-        // Если настроек разделов нет (старая комната), загружаем все базовые категории
-        customSections = snapshot.val() || {
-            wish: { name: 'Хотелки', emoji: '🎁', reqPrice: true, reqLink: true, reqDur: false },
-            date: { name: 'Свидания', emoji: '🥂', reqPrice: true, reqLink: false, reqDur: true },
-            movie: { name: 'Фильмы', emoji: '🎬', reqPrice: false, reqLink: true, reqDur: true },
-            completed: { name: 'Исполненное', emoji: '✅', reqPrice: true, reqLink: true, reqDur: false }
-        };
-        buildTabsSystem();
-    });
-
+    // 1. Сохраняем базовые категории
+    const defaultSections = {
+        wish: { name: 'Хотелки', emoji: '🎁', reqPrice: true, reqLink: true, reqDur: false },
+        date: { name: 'Свидания', emoji: '🥂', reqPrice: true, reqLink: false, reqDur: true },
+        movie: { name: 'Фильмы', emoji: '🎬', reqPrice: false, reqLink: true, reqDur: true },
+        completed: { name: 'Исполненное', emoji: '✅', reqPrice: true, reqLink: true, reqDur: false }
+    };
+    
+    // 2. Получаем кастомные из базы (если их нет, берем пустой объект)
+    const dbSections = snapshot.val() || {};
+    
+    // 3. Объединяем их (кастомные не затрут дефолтные)
+    customSections = { ...defaultSections, ...dbSections };
+    
+    buildTabsSystem();
+});
     onValue(ref(db, `rooms/${currentRoomId}/tamagochi`), (snapshot) => {
         const pet = snapshot.val() || { health: 50, luck: 50, kindness: 50, anger: 10, name: 'Святой Дух' };
         updateTamagochiWidget(pet);
