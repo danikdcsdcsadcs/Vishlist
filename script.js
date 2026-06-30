@@ -29,7 +29,7 @@ let roomUsersTitles = {};
 let currentTab = 'wish'; 
 let editGiftId = null; 
 let customSections = {};
-let isHubViewActive = false;
+let isHubViewActive = true; // По умолчанию показываем хаб разделов
 
 let searchQuery = '';
 let currentSort = 'default';
@@ -92,7 +92,6 @@ function buildEmojiPicker() {
     });
 }
 
-// Открытие профиля
 document.getElementById('open-profile-btn').onclick = () => {
     calculateAchievements();
     document.getElementById('profile-modal').classList.add('active');
@@ -124,6 +123,8 @@ async function showAppScreen(roomId, roomName, roomCreator) {
     
     DOM.screens.rooms.classList.remove('active'); DOM.screens.app.classList.add('active');
     currentUserFilter = 'all'; DOM.gifts.filterSelect.value = 'all';
+    
+    isHubViewActive = true; // Всегда заходим в комнату с экрана разделов по умолчанию
     
     listenToRoomData(); listenToChat(); listenToSchedule();
 }
@@ -208,7 +209,6 @@ function renderRooms() {
     });
 }
 
-// СОЗДАНИЕ КАСТОМНОГО РАЗДЕЛА
 document.getElementById('btn-show-add-section').onclick = () => {
     const panel = document.getElementById('add-section-panel');
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
@@ -240,7 +240,7 @@ function listenToRoomData() {
             roomUsersAvatars[k] = users[k].avatar || '🦊'; 
             roomUsersTitles[k] = users[k].selectedTitle || '👶 Новичок';
         });
-        renderGifts();
+        if (!isHubViewActive) renderGifts();
     });
 
     onValue(ref(db, `rooms/${currentRoomId}/sections`), (snapshot) => {
@@ -266,7 +266,10 @@ function listenToRoomData() {
                 });
             });
         }
-        updateUserFilterDropdown(); renderGifts();
+        updateUserFilterDropdown(); 
+        if (isHubViewActive) buildTabsSystem(); else renderGifts();
+        updateUserFilterDropdown(); 
+        if (isHubViewActive) buildTabsSystem(); else renderGifts();
     });
 
     onValue(ref(db, `rooms/${currentRoomId}/users_count`), (snapshot) => {
@@ -316,29 +319,30 @@ async function triggerTamagochiChange(stat, value) {
     await set(petRef, pet);
 }
 
-// ОБНОВЛЕННАЯ СИСТЕМА ТАБОВ С НАСТРОЙКОЙ ПОЛЕЙ
+// МОДИФИЦИРОВАННАЯ СИСТЕМА ТАБОВ И ВЫБОРА РАЗДЕЛОВ
 function buildTabsSystem() {
     const wrapper = document.getElementById('tabs-wrapper');
     wrapper.innerHTML = '';
     const keys = Object.keys(customSections);
 
-    if (keys.length >= 4) {
-        isHubViewActive = true;
-        wrapper.innerHTML = `<button class="tab-btn active" id="btn-goto-hub">🗂️ Все разделы комнаты</button>`;
-        document.getElementById('btn-goto-hub').onclick = () => { isHubViewActive = true; renderSectionsHub(); };
+    if (isHubViewActive) {
         renderSectionsHub();
     } else {
-        isHubViewActive = false;
         document.getElementById('sections-hub-grid').style.display = 'none';
         document.getElementById('active-tab-content-area').style.display = 'block';
+
+        // Добавляем главную кнопку возврата к списку всех разделов
+        const hubBtn = document.createElement('button');
+        hubBtn.className = 'tab-btn';
+        hubBtn.innerHTML = '🗂️ Все разделы';
+        hubBtn.onclick = () => { isHubViewActive = true; buildTabsSystem(); };
+        wrapper.appendChild(hubBtn);
 
         keys.forEach(key => {
             const btn = document.createElement('button');
             btn.className = `tab-btn ${currentTab === key ? 'active' : ''}`;
-            
             btn.innerHTML = `<span>${customSections[key].emoji} ${customSections[key].name}</span>`;
             
-            // Кнопка удаления только для кастомных
             if (!PRESET_SECTIONS.includes(key)) {
                 const delIcon = document.createElement('span');
                 delIcon.innerHTML = '❌';
@@ -347,16 +351,18 @@ function buildTabsSystem() {
                     e.stopPropagation();
                     if (confirm('Удалить этот раздел?')) {
                         await remove(ref(db, `rooms/${currentRoomId}/sections/${key}`));
-                        currentTab = 'wish';
+                        isHubViewActive = true;
+                        buildTabsSystem();
                     }
                 };
                 btn.appendChild(delIcon);
             }
 
-            btn.onclick = () => { currentTab = key; buildTabsSystem(); applySectionConfig(); renderGifts(); };
+            btn.onclick = () => { currentTab = key; isHubViewActive = false; buildTabsSystem(); applySectionConfig(); renderGifts(); };
             wrapper.appendChild(btn);
         });
         applySectionConfig();
+        renderGifts();
     }
 }
 
@@ -364,7 +370,6 @@ function applySectionConfig() {
     const activeSec = customSections[currentTab];
     if (!activeSec) return;
     
-    // Скрываем/Показываем инпуты по настройкам
     document.getElementById('gift-price-input').style.display = activeSec.reqPrice !== false ? 'block' : 'none';
     if(activeSec.reqPrice === false) document.getElementById('gift-price-input').removeAttribute('required');
     else document.getElementById('gift-price-input').setAttribute('required', 'true');
@@ -385,7 +390,7 @@ function renderSectionsHub() {
         }).length;
         const block = document.createElement('div'); block.className = 'section-hub-block';
         block.innerHTML = `<div class="hub-emoji">${customSections[key].emoji}</div><div class="hub-name">${customSections[key].name}</div><div class="hub-count">Карточек: ${count}</div>`;
-        block.onclick = () => { currentTab = key; hubGrid.style.display = 'none'; document.getElementById('active-tab-content-area').style.display = 'block'; applySectionConfig(); renderGifts(); };
+        block.onclick = () => { currentTab = key; isHubViewActive = false; buildTabsSystem(); };
         hubGrid.appendChild(block);
     });
 }
@@ -416,7 +421,7 @@ document.getElementById('add-gift-form').addEventListener('submit', async (e) =>
     const rating = parseInt(document.querySelector('input[name="rating"]:checked')?.value || 3);
     
     const activeSec = customSections[currentTab];
-    if (activeSec && activeSec.reqPrice === false) price = 0; // если цена не нужна
+    if (activeSec && activeSec.reqPrice === false) price = 0;
 
     if (title) {
         await push(ref(db, `rooms/${currentRoomId}/gifts`), {
@@ -444,7 +449,7 @@ DOM.gifts.filterSelect.addEventListener('change', (e) => { currentUserFilter = e
 
 function renderGifts() {
     DOM.gifts.container.innerHTML = '';
-    if (isHubViewActive && document.getElementById('sections-hub-grid').style.display === 'grid') return;
+    if (isHubViewActive) return;
 
     let processedGifts = giftsData.filter(g => g.title.toLowerCase().includes(searchQuery));
     if (currentUserFilter !== 'all') processedGifts = processedGifts.filter(g => g.createdBy === currentUserFilter);
@@ -460,7 +465,6 @@ function renderGifts() {
 
     DOM.gifts.totalCount.textContent = processedGifts.length;
 
-    // ОБНОВЛЕННАЯ СТОИМОСТЬ (ОБЩАЯ + НА ЧЕЛОВЕКА)
     const totalCost = processedGifts.reduce((acc, curr) => acc + curr.price, 0);
     const usersCount = roomUsersList.length || 1;
     document.querySelector('#section-cost-summary').innerHTML = `💰 Общая стоимость: <span>${totalCost.toLocaleString('ru-RU')} ₽</span> | На человека: <span>${Math.round(totalCost / usersCount).toLocaleString('ru-RU')} ₽</span>`;
@@ -539,7 +543,6 @@ document.getElementById('edit-gift-form').addEventListener('submit', async (e) =
     try { await update(ref(db, `rooms/${currentRoomId}/gifts/${editGiftId}`), { title, price, imageUrl, linkUrl, duration, note }); document.getElementById('edit-modal').classList.remove('active'); editGiftId = null; } catch (error) { }
 });
 
-// ДОСТИЖЕНИЯ И ЗВАНИЯ С ЧЕКБОКСАМИ (РАДИО)
 function calculateAchievements() {
     const list = document.getElementById('profile-achievements-list');
     const titlesList = document.getElementById('profile-titles-list');
@@ -563,7 +566,6 @@ function calculateAchievements() {
         availableTitles.push('🔱 Главный Благодетель');
     }
 
-    // Отрисовка радио-кнопок званий
     availableTitles.forEach(titleText => {
         const lbl = document.createElement('label');
         lbl.style.cursor = 'pointer';
@@ -586,9 +588,8 @@ function calculateAchievements() {
     });
 }
 
-// ПРОСМОТР ЧУЖОГО ПРОФИЛЯ
 function showOtherProfile(username) {
-    if (username === currentUser) return; // Свой профиль открывается сверху
+    if (username === currentUser) return;
     
     const safeName = getSafeUserKey(username);
     document.getElementById('other-profile-name').textContent = username;
@@ -616,7 +617,7 @@ function showOtherProfile(username) {
     document.getElementById('other-profile-modal').classList.add('active');
 }
 
-// РАСПИСАНИЕ (СБОКУ)
+// РАСПИСАНИЕ
 document.getElementById('toggle-todo-btn').onclick = () => { DOM.todo.panel.classList.toggle('open'); };
 document.getElementById('close-todo-btn').onclick = () => { DOM.todo.panel.classList.remove('open'); };
 
@@ -649,6 +650,36 @@ document.getElementById('add-schedule-form').addEventListener('submit', async (e
     if(text && start && end) { await push(ref(db, `rooms/${currentRoomId}/schedule`), { user: currentUser, text, start, end }); document.getElementById('task-text').value = ''; }
 });
 
+// АНАЛИЗ ЧАТА ДЛЯ ТАМАГОЧИ
+async function analyzeChatSentiment(text) {
+    const lower = text.toLowerCase();
+    const positiveWords = ['спасибо', 'круто', 'ура', 'люблю', 'класс', 'мило', 'отлично', 'подарок', 'лучший', 'красиво', 'топ', 'пожалуйста'];
+    const negativeWords = ['блин', 'черт', 'дурак', 'плохо', 'ужас', 'бесит', 'капец', 'тупо', 'отстой', 'скучно', 'говно'];
+
+    let angerChange = 0;
+    let kindnessChange = 0;
+    let healthChange = 0;
+    let luckChange = 0;
+
+    if (positiveWords.some(word => lower.includes(word))) {
+        kindnessChange = 8;
+        angerChange = -10;
+        luckChange = 4;
+        healthChange = 2;
+    }
+
+    if (negativeWords.some(word => lower.includes(word))) {
+        angerChange = 12;
+        kindnessChange = -8;
+        healthChange = -4;
+    }
+
+    if (angerChange !== 0) await triggerTamagochiChange('anger', angerChange);
+    if (kindnessChange !== 0) await triggerTamagochiChange('kindness', kindnessChange);
+    if (healthChange !== 0) await triggerTamagochiChange('health', healthChange);
+    if (luckChange !== 0) await triggerTamagochiChange('luck', luckChange);
+}
+
 // ЧАТ
 document.getElementById('toggle-chat-btn').onclick = () => { DOM.chat.panel.classList.toggle('open'); };
 document.getElementById('close-chat-btn').onclick = () => { DOM.chat.panel.classList.remove('open'); };
@@ -668,7 +699,6 @@ function listenToChat() {
                     authorDiv.style.color = generateUserColor(msg.sender);
                     authorDiv.style.cssText += 'display:flex; align-items:center; gap:6px; margin-bottom:4px; font-weight:600; font-size:0.8rem;';
                     
-                    // Кликабельное имя для чужого профиля
                     const nameSpan = document.createElement('span');
                     nameSpan.textContent = `${senderAv} ${msg.sender}`;
                     nameSpan.onclick = () => showOtherProfile(msg.sender);
@@ -684,7 +714,13 @@ function listenToChat() {
 
 document.getElementById('chat-form').addEventListener('submit', async (e) => {
     e.preventDefault(); const text = DOM.chat.input.value.trim();
-    if (text) { try { await push(ref(db, `rooms/${currentRoomId}/messages`), { sender: currentUser, text: text, timestamp: Date.now() }); DOM.chat.input.value = ''; } catch (error) { } }
+    if (text) { 
+        try { 
+            await push(ref(db, `rooms/${currentRoomId}/messages`), { sender: currentUser, text: text, timestamp: Date.now() }); 
+            await analyzeChatSentiment(text); // Триггерим изменение настроения духа
+            DOM.chat.input.value = ''; 
+        } catch (error) { } 
+    }
 });
 
 window.onload = init;
