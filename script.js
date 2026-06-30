@@ -26,15 +26,16 @@ let giftsData = [];
 let roomUsersList = []; 
 let roomUsersAvatars = {}; 
 let roomUsersTitles = {}; 
+let displayNames = {}; // НОВОЕ: Хранилище отображаемых имен
 let currentTab = 'wish'; 
 let editGiftId = null; 
 let customSections = {};
-let isHubViewActive = true; // По умолчанию показываем хаб разделов
+let isHubViewActive = true; 
 
 let searchQuery = '';
 let currentSort = 'default';
 let currentUserFilter = 'all'; 
-let displayNames = {}; // Хранилище: логин -> красивое имя
+
 const PRESET_EMOJIS = ['🦊','🐱','🐻','🐼','🦁','🐸','🐵','🦄','🤖','🧙','🥷','🧑‍🚀','🐙','🐹','🐰','🐯'];
 const PRESET_SECTIONS = ['wish', 'date', 'movie', 'completed'];
 
@@ -51,6 +52,25 @@ const DOM = {
 const getSafeUserKey = (username) => username.replace(/[\.\$\#\[\]\/]/g, "_");
 const escapeHTML = (str) => { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; };
 
+// Функция получения отображаемого имени (если нет - вернет логин)
+window.getDisplayName = (login) => {
+    if (!login) return 'Аноним';
+    const safe = getSafeUserKey(login);
+    return displayNames[safe] || login;
+};
+
+// Функция изменения имени пользователем
+window.changeMyName = async () => {
+    const currentName = getDisplayName(currentUser);
+    const newName = prompt("Введите новое имя (оно будет отображаться везде вместо логина):", currentName);
+    
+    if (newName && newName.trim() !== "" && newName !== currentName) {
+        const safeMe = getSafeUserKey(currentUser);
+        await update(ref(db, `users/${safeMe}`), { displayName: newName.trim() });
+        alert("Имя успешно изменено!");
+    }
+};
+
 function generateUserColor(username) {
     if (!username) return '#000';
     let hash = 0;
@@ -63,7 +83,7 @@ function init() {
     buildEmojiPicker();
     if (currentUser) { loadUserProfile(); showRoomsScreen(); } else { showLoginScreen(); }
 }
-// Логика добавления новых полей через плюс
+
 document.getElementById('btn-add-custom-field').onclick = () => {
     const container = document.getElementById('custom-fields-container');
     const fieldDiv = document.createElement('div');
@@ -84,49 +104,11 @@ document.getElementById('btn-add-custom-field').onclick = () => {
     container.appendChild(fieldDiv);
 };
 
-// Функция для получения имени (если нет кастомного - вернет логин)
-function getDisplayName(login) {
-    if (!login) return 'Аноним';
-    const safe = getSafeUserKey(login);
-    return displayNames[safe] || login;
-}
-
-// Функция для изменения своего имени
-window.changeMyName = async () => {
-    const currentName = getDisplayName(currentUser);
-    const newName = prompt("Введите новое отображаемое имя:", currentName);
-    
-    if (newName && newName.trim() !== "" && newName !== currentName) {
-        const safeMe = getSafeUserKey(currentUser);
-        await set(ref(db, `users/${safeMe}/displayName`), newName.trim());
-        alert("Имя успешно изменено!");
-    }
-};
-
-// Слушатель всех пользователей, чтобы имена обновлялись онлайн у всех
-onValue(ref(db, 'users'), (snap) => {
-    if (snap.exists()) {
-        const usersData = snap.val();
-        for (let safeLogin in usersData) {
-            if (usersData[safeLogin].displayName) {
-                displayNames[safeLogin] = usersData[safeLogin].displayName;
-            }
-        }
-        // Обновляем интерфейс, если мы в комнате
-        if (currentRoomId) {
-            renderGifts();
-            listenToChat(); // Перерисуем чат с новыми именами
-        }
-    }
-});
-
-// Обновленная отправка формы создания раздела
 document.getElementById('create-custom-section-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('new-section-name').value.trim();
     const emoji = document.getElementById('new-section-emoji').value.trim();
     
-    // Собираем все созданные пользователем поля
     const customFields = [];
     document.querySelectorAll('#custom-fields-container > div').forEach(row => {
         customFields.push({
@@ -141,15 +123,15 @@ document.getElementById('create-custom-section-form').addEventListener('submit',
         await set(ref(db, `rooms/${currentRoomId}/sections/${cleanKey}`), { 
             name, 
             emoji, 
-            reqPrice: false, // Отключаем дефолтные, так как теперь есть кастомные
+            reqPrice: false,
             reqLink: false, 
             reqDur: false,
-            fields: customFields // Массив с настройками полей улетает в БД
+            fields: customFields 
         });
         
         document.getElementById('new-section-name').value = ''; 
         document.getElementById('new-section-emoji').value = '';
-        document.getElementById('custom-fields-container').innerHTML = ''; // Очищаем форму
+        document.getElementById('custom-fields-container').innerHTML = '';
         document.getElementById('add-section-panel').style.display = 'none';
     }
 });
@@ -164,6 +146,7 @@ function loadUserProfile() {
             DOM.rooms.avatar.textContent = userAvatarEmoji;
             document.getElementById('profile-current-avatar').textContent = userAvatarEmoji;
             document.getElementById('global-title').textContent = userTitle;
+            DOM.rooms.userDisplay.textContent = data.displayName || currentUser; // Показываем Display Name
         }
     });
 }
@@ -195,7 +178,6 @@ function showLoginScreen() {
 
 function showRoomsScreen() {
     DOM.screens.login.classList.remove('active'); DOM.screens.app.classList.remove('active'); DOM.screens.rooms.classList.add('active');
-    DOM.rooms.userDisplay.textContent = currentUser;
     loadUserProfile(); listenToRooms();
 }
 
@@ -214,7 +196,7 @@ async function showAppScreen(roomId, roomName, roomCreator) {
     DOM.screens.rooms.classList.remove('active'); DOM.screens.app.classList.add('active');
     currentUserFilter = 'all'; DOM.gifts.filterSelect.value = 'all';
     
-    isHubViewActive = true; // Всегда заходим в комнату с экрана разделов по умолчанию
+    isHubViewActive = true; 
     
     listenToRoomData(); listenToChat(); listenToSchedule();
 }
@@ -230,7 +212,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             if (snapshot.val().password === pass) loginSuccess(login);
             else alert('Неверный пароль!');
         } else {
-            await set(ref(db, `users/${safeLogin}`), { password: pass, avatar: '🦊', selectedTitle: '👶 Новичок' });
+            await set(ref(db, `users/${safeLogin}`), { password: pass, avatar: '🦊', selectedTitle: '👶 Новичок', displayName: login });
             alert('Аккаунт создан!'); loginSuccess(login);
         }
     } catch (error) { alert('Ошибка входа.'); }
@@ -288,7 +270,7 @@ function renderRooms() {
     if (roomsData.length === 0) { DOM.rooms.container.innerHTML = '<div class="loading-placeholder">У вас нет комнат.</div>'; return; }
     roomsData.forEach(room => {
         const card = document.createElement('div'); card.className = 'room-card'; card.onclick = () => showAppScreen(room.id, room.name, room.createdBy);
-        const infoDiv = document.createElement('div'); infoDiv.innerHTML = `<div class="room-title">${escapeHTML(room.name)}</div><div class="gift-creator">Создатель: ${escapeHTML(room.createdBy)}</div>`;
+        const infoDiv = document.createElement('div'); infoDiv.innerHTML = `<div class="room-title">${escapeHTML(room.name)}</div><div class="gift-creator">Создатель: ${escapeHTML(getDisplayName(room.createdBy))}</div>`;
         card.appendChild(infoDiv);
         if (room.createdBy === currentUser) {
             const btn = document.createElement('button'); btn.className = 'btn-delete'; btn.innerHTML = '&#x2715;';
@@ -304,52 +286,32 @@ document.getElementById('btn-show-add-section').onclick = () => {
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 };
 
-document.getElementById('create-custom-section-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('new-section-name').value.trim();
-    const emoji = document.getElementById('new-section-emoji').value.trim();
-    const reqPrice = document.getElementById('sec-req-price').checked;
-    const reqLink = document.getElementById('sec-req-link').checked;
-    const reqDur = document.getElementById('sec-req-dur').checked;
-    
-    if(name && emoji) {
-        const cleanKey = 'custom_' + Date.now();
-        await set(ref(db, `rooms/${currentRoomId}/sections/${cleanKey}`), { name, emoji, reqPrice, reqLink, reqDur });
-        document.getElementById('new-section-name').value = ''; document.getElementById('new-section-emoji').value = '';
-        document.getElementById('add-section-panel').style.display = 'none';
-    }
-});
-
 function listenToRoomData() {
     if (!currentRoomId) return;
 
     onValue(ref(db, `users`), (snap) => {
         const users = snap.val() || {};
-        roomUsersAvatars = {}; roomUsersTitles = {};
+        roomUsersAvatars = {}; roomUsersTitles = {}; displayNames = {};
         Object.keys(users).forEach(k => { 
             roomUsersAvatars[k] = users[k].avatar || '🦊'; 
             roomUsersTitles[k] = users[k].selectedTitle || '👶 Новичок';
+            displayNames[k] = users[k].displayName || k; // Обновляем словарь отображаемых имен
         });
         if (!isHubViewActive) renderGifts();
     });
 
     onValue(ref(db, `rooms/${currentRoomId}/sections`), (snapshot) => {
-    // 1. Сохраняем базовые категории
-    const defaultSections = {
-        wish: { name: 'Хотелки', emoji: '🎁', reqPrice: true, reqLink: true, reqDur: false },
-        date: { name: 'Свидания', emoji: '🥂', reqPrice: true, reqLink: false, reqDur: true },
-        movie: { name: 'Фильмы', emoji: '🎬', reqPrice: false, reqLink: true, reqDur: true },
-        completed: { name: 'Исполненное', emoji: '✅', reqPrice: true, reqLink: true, reqDur: false }
-    };
-    
-    // 2. Получаем кастомные из базы (если их нет, берем пустой объект)
-    const dbSections = snapshot.val() || {};
-    
-    // 3. Объединяем их (кастомные не затрут дефолтные)
-    customSections = { ...defaultSections, ...dbSections };
-    
-    buildTabsSystem();
-});
+        const defaultSections = {
+            wish: { name: 'Хотелки', emoji: '🎁', reqPrice: true, reqLink: true, reqDur: false },
+            date: { name: 'Свидания', emoji: '🥂', reqPrice: true, reqLink: false, reqDur: true },
+            movie: { name: 'Фильмы', emoji: '🎬', reqPrice: false, reqLink: true, reqDur: true },
+            completed: { name: 'Исполненное', emoji: '✅', reqPrice: true, reqLink: true, reqDur: false }
+        };
+        const dbSections = snapshot.val() || {};
+        customSections = { ...defaultSections, ...dbSections };
+        buildTabsSystem();
+    });
+
     onValue(ref(db, `rooms/${currentRoomId}/tamagochi`), (snapshot) => {
         const pet = snapshot.val() || { health: 50, luck: 50, kindness: 50, anger: 10, name: 'Святой Дух' };
         updateTamagochiWidget(pet);
@@ -368,8 +330,6 @@ function listenToRoomData() {
                 });
             });
         }
-        updateUserFilterDropdown(); 
-        if (isHubViewActive) buildTabsSystem(); else renderGifts();
         updateUserFilterDropdown(); 
         if (isHubViewActive) buildTabsSystem(); else renderGifts();
     });
@@ -421,19 +381,23 @@ async function triggerTamagochiChange(stat, value) {
     await set(petRef, pet);
 }
 
-// МОДИФИЦИРОВАННАЯ СИСТЕМА ТАБОВ И ВЫБОРА РАЗДЕЛОВ
 function buildTabsSystem() {
     const wrapper = document.getElementById('tabs-wrapper');
     wrapper.innerHTML = '';
     const keys = Object.keys(customSections);
+    
+    // Прячем или показываем форму добавления карточки
+    const addCardPanel = document.getElementById('add-card-panel');
 
     if (isHubViewActive) {
+        if (addCardPanel) addCardPanel.style.display = 'none'; // Скрываем в хабе
         renderSectionsHub();
     } else {
+        if (addCardPanel) addCardPanel.style.display = 'block'; // Показываем в разделах
+        
         document.getElementById('sections-hub-grid').style.display = 'none';
         document.getElementById('active-tab-content-area').style.display = 'block';
 
-        // Добавляем главную кнопку возврата к списку всех разделов
         const hubBtn = document.createElement('button');
         hubBtn.className = 'tab-btn';
         hubBtn.innerHTML = '🗂️ Все разделы';
@@ -504,7 +468,7 @@ function updateUserFilterDropdown() {
     if (Array.isArray(roomUsersList)) roomUsersList.forEach(u => { if (u) uniqueUsers.add(u); });
     if (Array.isArray(giftsData)) giftsData.forEach(g => { if (g && g.createdBy) uniqueUsers.add(g.createdBy); });
     const sortedUsers = Array.from(uniqueUsers).filter(u => typeof u === 'string').sort((a, b) => a.localeCompare(b));
-    sortedUsers.forEach(user => { const opt = document.createElement('option'); opt.value = user; opt.textContent = `👤 ${user}`; DOM.gifts.filterSelect.appendChild(opt); });
+    sortedUsers.forEach(user => { const opt = document.createElement('option'); opt.value = user; opt.textContent = `👤 ${getDisplayName(user)}`; DOM.gifts.filterSelect.appendChild(opt); });
     if (uniqueUsers.has(currentVal)) { DOM.gifts.filterSelect.value = currentVal; currentUserFilter = currentVal; }
     else { DOM.gifts.filterSelect.value = 'all'; currentUserFilter = 'all'; }
 }
@@ -592,30 +556,22 @@ function renderGifts() {
         const creatorAvatar = roomUsersAvatars[creatorSafeKey] || '🦊';
 
         const headerDiv = document.createElement('div'); headerDiv.className = 'gift-header';
-        headerDiv.innerHTML = `<div class="gift-creator"><span class="avatar-mini">${creatorAvatar}</span> <b>${escapeHTML(gift.createdBy)}</b></div><div style="color:var(--star-color); margin-right: 60px;">${stars}</div>`;
+        // Используем getDisplayName для показа имени создателя карточки
+        headerDiv.innerHTML = `<div class="gift-creator"><span class="avatar-mini">${creatorAvatar}</span> <b>${escapeHTML(getDisplayName(gift.createdBy))}</b></div><div style="color:var(--star-color); margin-right: 60px;">${stars}</div>`;
         card.appendChild(headerDiv);
 
         if (gift.imageUrl) {
-            const imgContainer = document.createElement('div'); 
-            imgContainer.className = 'gift-image-container';
+            const imgContainer = document.createElement('div'); imgContainer.className = 'gift-image-container';
+            const img = document.createElement('img'); img.src = gift.imageUrl; img.className = 'gift-image';
             
-            const img = document.createElement('img'); 
-            img.src = gift.imageUrl; 
-            img.className = 'gift-image';
-            img.style.cursor = 'zoom-in'; // Указатель, что можно кликнуть
-            
-            // --- НОВАЯ ЛОГИКА КЛИКА ---
-            img.onclick = () => {
-                const lightbox = document.getElementById('lightbox-modal');
-                const lightboxImg = document.getElementById('lightbox-img');
-                lightboxImg.src = gift.imageUrl;
-                lightbox.classList.add('active');
+            // ЛОГИКА ОТКРЫТИЯ ЛАЙТБОКСА
+            img.onclick = () => { 
+                document.getElementById('lightbox-img').src = gift.imageUrl; 
+                document.getElementById('lightbox-modal').classList.add('active'); 
             };
-            // --------------------------
-
+            
             img.onerror = () => imgContainer.style.display = 'none';
-            imgContainer.appendChild(img); 
-            card.appendChild(imgContainer);
+            imgContainer.appendChild(img); card.appendChild(imgContainer);
         }
 
         card.innerHTML += `<div class="gift-title">${escapeHTML(gift.title)}</div>`;
@@ -627,7 +583,7 @@ function renderGifts() {
 
         const buyersDiv = document.createElement('div'); buyersDiv.className = 'gift-buyers';
         Object.keys(gift.buyers).forEach(buyer => {
-            const tag = document.createElement('span'); tag.className = 'buyer-tag'; tag.textContent = buyer;
+            const tag = document.createElement('span'); tag.className = 'buyer-tag'; tag.textContent = getDisplayName(buyer);
             tag.style.backgroundColor = generateUserColor(buyer); buyersDiv.appendChild(tag);
         });
         card.appendChild(buyersDiv);
@@ -672,34 +628,17 @@ function calculateAchievements() {
     const achievements = [];
     const availableTitles = ['👶 Новичок'];
 
-    // --- Достижения за добавление карточек ---
     if(myCreatedCount >= 1) achievements.push({ text: '💡 Искорка', desc: 'Добавил свою первую хотелку' });
     if(myCreatedCount >= 5) availableTitles.push('📝 Архивариус Желаний');
     if(myCreatedCount >= 10) achievements.push({ text: '👑 Генератор Идей', desc: 'Добавил более 10 хотелок' });
-    if(myCreatedCount >= 25) { 
-        achievements.push({ text: '🐉 Дракон Желаний', desc: 'Собрал гору сокровищ в вишлисте (25+)' }); 
-        availableTitles.push('🌌 Властелин Вселенной'); 
-    }
-    if(myCreatedCount >= 50) { 
-        achievements.push({ text: '🏆 Абсолют', desc: 'Добавил 50+ карточек. Тебя не остановить!' }); 
-        availableTitles.push('♾️ Бесконечность'); 
-    }
+    if(myCreatedCount >= 25) { achievements.push({ text: '🐉 Дракон Желаний', desc: 'Собрал гору сокровищ в вишлисте (25+)' }); availableTitles.push('🌌 Властелин Вселенной'); }
+    if(myCreatedCount >= 50) { achievements.push({ text: '🏆 Абсолют', desc: 'Добавил 50+ карточек. Тебя не остановить!' }); availableTitles.push('♾️ Бесконечность'); }
     
-    // --- Достижения за исполнение (подарки) ---
     if(myGivenCount >= 1) achievements.push({ text: '❤️ Добряк', desc: 'Взялся исполнить чье-то желание' });
     if(myGivenCount >= 2) availableTitles.push('✨ Волшебник');
-    if(myGivenCount >= 5) {
-        achievements.push({ text: '🎅 Настоящий Санта', desc: 'Исполнил 5 и более желаний в комнате!' });
-        availableTitles.push('🔱 Главный Благодетель');
-    }
-    if(myGivenCount >= 15) { 
-        achievements.push({ text: '👼 Архангел', desc: 'Подарил кусочек рая 15 раз' }); 
-        availableTitles.push('🧞‍♂️ Джинн из лампы'); 
-    }
-    if(myGivenCount >= 30) { 
-        achievements.push({ text: '💎 Меценат Века', desc: 'Исполнил 30 желаний. Легенда!' }); 
-        availableTitles.push('🌟 Хранитель Света'); 
-    }
+    if(myGivenCount >= 5) { achievements.push({ text: '🎅 Настоящий Санта', desc: 'Исполнил 5 и более желаний в комнате!' }); availableTitles.push('🔱 Главный Благодетель'); }
+    if(myGivenCount >= 15) { achievements.push({ text: '👼 Архангел', desc: 'Подарил кусочек рая 15 раз' }); availableTitles.push('🧞‍♂️ Джинн из лампы'); }
+    if(myGivenCount >= 30) { achievements.push({ text: '💎 Меценат Века', desc: 'Исполнил 30 желаний. Легенда!' }); availableTitles.push('🌟 Хранитель Света'); }
 
     availableTitles.forEach(titleText => {
         const lbl = document.createElement('label');
@@ -727,7 +666,7 @@ function showOtherProfile(username) {
     if (username === currentUser) return;
     
     const safeName = getSafeUserKey(username);
-    document.getElementById('other-profile-name').textContent = username;
+    document.getElementById('other-profile-name').textContent = getDisplayName(username); // Используем Display Name
     document.getElementById('other-profile-avatar').textContent = roomUsersAvatars[safeName] || '🦊';
     document.getElementById('other-profile-title').textContent = roomUsersTitles[safeName] || '👶 Новичок';
 
@@ -752,7 +691,6 @@ function showOtherProfile(username) {
     document.getElementById('other-profile-modal').classList.add('active');
 }
 
-// РАСПИСАНИЕ
 document.getElementById('toggle-todo-btn').onclick = () => { DOM.todo.panel.classList.toggle('open'); };
 document.getElementById('close-todo-btn').onclick = () => { DOM.todo.panel.classList.remove('open'); };
 
@@ -768,7 +706,7 @@ function listenToSchedule() {
                 
                 block.innerHTML = `
                     <div class="time-tag">${escapeHTML(item.start)} - ${escapeHTML(item.end)}</div>
-                    <div class="task-body"><span><b>${userAv} ${escapeHTML(item.user)}:</b> ${escapeHTML(item.text)}</span></div>
+                    <div class="task-body"><span><b>${userAv} ${escapeHTML(getDisplayName(item.user))}:</b> ${escapeHTML(item.text)}</span></div>
                 `;
                 if(item.user === currentUser) {
                     const del = document.createElement('span'); del.className = 'del-task'; del.innerHTML = '✖';
@@ -785,29 +723,15 @@ document.getElementById('add-schedule-form').addEventListener('submit', async (e
     if(text && start && end) { await push(ref(db, `rooms/${currentRoomId}/schedule`), { user: currentUser, text, start, end }); document.getElementById('task-text').value = ''; }
 });
 
-// АНАЛИЗ ЧАТА ДЛЯ ТАМАГОЧИ
 async function analyzeChatSentiment(text) {
     const lower = text.toLowerCase();
     const positiveWords = ['спасибо', 'круто', 'ура', 'люблю', 'класс', 'мило', 'отлично', 'подарок', 'лучший', 'красиво', 'топ', 'пожалуйста'];
     const negativeWords = ['блин', 'черт', 'дурак', 'плохо', 'ужас', 'бесит', 'капец', 'тупо', 'отстой', 'скучно', 'говно'];
 
-    let angerChange = 0;
-    let kindnessChange = 0;
-    let healthChange = 0;
-    let luckChange = 0;
+    let angerChange = 0; let kindnessChange = 0; let healthChange = 0; let luckChange = 0;
 
-    if (positiveWords.some(word => lower.includes(word))) {
-        kindnessChange = 8;
-        angerChange = -10;
-        luckChange = 4;
-        healthChange = 2;
-    }
-
-    if (negativeWords.some(word => lower.includes(word))) {
-        angerChange = 12;
-        kindnessChange = -8;
-        healthChange = -4;
-    }
+    if (positiveWords.some(word => lower.includes(word))) { kindnessChange = 8; angerChange = -10; luckChange = 4; healthChange = 2; }
+    if (negativeWords.some(word => lower.includes(word))) { angerChange = 12; kindnessChange = -8; healthChange = -4; }
 
     if (angerChange !== 0) await triggerTamagochiChange('anger', angerChange);
     if (kindnessChange !== 0) await triggerTamagochiChange('kindness', kindnessChange);
@@ -815,7 +739,6 @@ async function analyzeChatSentiment(text) {
     if (luckChange !== 0) await triggerTamagochiChange('luck', luckChange);
 }
 
-// ЧАТ
 document.getElementById('toggle-chat-btn').onclick = () => { DOM.chat.panel.classList.toggle('open'); };
 document.getElementById('close-chat-btn').onclick = () => { DOM.chat.panel.classList.remove('open'); };
 
@@ -835,7 +758,8 @@ function listenToChat() {
                     authorDiv.style.cssText += 'display:flex; align-items:center; gap:6px; margin-bottom:4px; font-weight:600; font-size:0.8rem;';
                     
                     const nameSpan = document.createElement('span');
-                    nameSpan.textContent = `${senderAv} ${msg.sender}`;
+                    // Используем getDisplayName
+                    nameSpan.textContent = `${senderAv} ${getDisplayName(msg.sender)}`;
                     nameSpan.onclick = () => showOtherProfile(msg.sender);
                     authorDiv.appendChild(nameSpan);
                     div.appendChild(authorDiv);
@@ -852,7 +776,7 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
     if (text) { 
         try { 
             await push(ref(db, `rooms/${currentRoomId}/messages`), { sender: currentUser, text: text, timestamp: Date.now() }); 
-            await analyzeChatSentiment(text); // Триггерим изменение настроения духа
+            await analyzeChatSentiment(text); 
             DOM.chat.input.value = ''; 
         } catch (error) { } 
     }
