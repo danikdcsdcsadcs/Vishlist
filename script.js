@@ -212,7 +212,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             if (snapshot.val().password === pass) loginSuccess(login);
             else alert('Неверный пароль!');
         } else {
-            await set(ref(db, `users/${safeLogin}–`), { password: pass, avatar: '🦊', selectedTitle: '👶 Новичок', displayName: login });
+            await set(ref(db, `users/${safeLogin}`), { password: pass, avatar: '🦊', selectedTitle: '👶 Новичок', displayName: login });
             alert('Аккаунт создан!'); loginSuccess(login);
         }
     } catch (error) { alert('Ошибка входа.'); }
@@ -511,7 +511,6 @@ document.getElementById('search-input').addEventListener('input', (e) => { searc
 document.getElementById('sort-select').addEventListener('change', (e) => { currentSort = e.target.value; renderGifts(); });
 DOM.gifts.filterSelect.addEventListener('change', (e) => { currentUserFilter = e.target.value; renderGifts(); });
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ: Полноценное разделение innerHTML и appendChild во избежание уничтожения обработчиков событий
 function renderGifts() {
     DOM.gifts.container.innerHTML = '';
     if (isHubViewActive) return;
@@ -546,7 +545,6 @@ function renderGifts() {
         const creatorSafeKey = getSafeUserKey(gift.createdBy);
         const creatorAvatar = roomUsersAvatars[creatorSafeKey] || '🦊';
 
-        // Формируем строковые шаблоны для опциональных полей структуры
         let imageHtml = '';
         if (gift.imageUrl) {
             imageHtml = `
@@ -560,7 +558,6 @@ function renderGifts() {
         let linkHtml = gift.linkUrl ? `<div class="gift-meta-field">🛒 Ссылка: <a href="${escapeHTML(gift.linkUrl)}" target="_blank" rel="noopener noreferrer">Перейти в магазин →</a></div>` : '';
         let noteHtml = gift.note ? `<div class="gift-note">📝 ${escapeHTML(gift.note)}</div>` : '';
 
-        // ВАЖНО: Записываем весь статичный HTML-каркас за ОДИН раз. Обработчики событий вешаем строго ПОСЛЕ.
         card.innerHTML = `
             <div class="gift-header">
                 <div class="gift-creator"><span class="avatar-mini">${creatorAvatar}</span> <b>${escapeHTML(getDisplayName(gift.createdBy))}</b></div>
@@ -574,7 +571,6 @@ function renderGifts() {
             ${noteHtml}
         `;
 
-        // 1. Активация Лайтбокса для картинок
         if (gift.imageUrl) {
             const imgEl = card.querySelector(`#img-${gift.id}`);
             if (imgEl) {
@@ -590,7 +586,6 @@ function renderGifts() {
             }
         }
 
-        // 2. Кнопки управления (Удалить / Изменить) — создаются элементами и не затираются
         if (gift.createdBy === currentUser || currentRoomCreator === currentUser) {
             const actionsDiv = document.createElement('div'); 
             actionsDiv.className = 'action-buttons';
@@ -618,7 +613,6 @@ function renderGifts() {
             card.appendChild(actionsDiv);
         }
 
-        // 3. Динамический блок списка исполнителей желаний
         const buyersDiv = document.createElement('div'); 
         buyersDiv.className = 'gift-buyers';
         if (gift.buyers) {
@@ -632,7 +626,6 @@ function renderGifts() {
         }
         card.appendChild(buyersDiv);
 
-        // 4. Интерактивная кнопка бронирования ("Взяться за исполнение")
         const buyBtn = document.createElement('button'); 
         buyBtn.className = isMeChecked ? 'btn-buy-action active' : 'btn-buy-action';
         buyBtn.innerHTML = isMeChecked ? '✅ Вы исполняете это' : '🛍️ Взяться за исполнение';
@@ -759,7 +752,7 @@ function listenToSchedule() {
                 
                 block.innerHTML = `
                     <div class="time-tag">${escapeHTML(item.start)} - ${escapeHTML(item.end)}</div>
-                    <div class="task-body"><span><b>${userAv} ${escapeHTML(getDisplayName(item.user)}:</b> ${escapeHTML(item.text)}</span></div>
+                    <div class="task-body"><span><b>${userAv} ${escapeHTML(getDisplayName(item.user))}:</b> ${escapeHTML(item.text)}</span></div>
                 `;
                 if(item.user === currentUser) {
                     const del = document.createElement('span'); del.className = 'del-task'; del.innerHTML = '✖';
