@@ -244,7 +244,13 @@ function listenToRoomData() {
     });
 
     onValue(ref(db, `rooms/${currentRoomId}/sections`), (snapshot) => {
-        customSections = snapshot.val() || { wish: {name:'Хотелки', emoji:'🎁', reqPrice:true} };
+        // Если настроек разделов нет (старая комната), загружаем все базовые категории
+        customSections = snapshot.val() || {
+            wish: { name: 'Хотелки', emoji: '🎁', reqPrice: true, reqLink: true, reqDur: false },
+            date: { name: 'Свидания', emoji: '🥂', reqPrice: true, reqLink: false, reqDur: true },
+            movie: { name: 'Фильмы', emoji: '🎬', reqPrice: false, reqLink: true, reqDur: true },
+            completed: { name: 'Исполненное', emoji: '✅', reqPrice: true, reqLink: true, reqDur: false }
+        };
         buildTabsSystem();
     });
 
