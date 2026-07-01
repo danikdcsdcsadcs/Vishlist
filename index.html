@@ -10,6 +10,7 @@
 </head>
 <body>
 
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
     <div id="login-screen" class="screen active">
         <div class="login-card">
             <h1>Добро пожаловать!</h1>
@@ -22,6 +23,7 @@
         </div>
     </div>
 
+    <!-- ЭКРАН ВЫБОРА КОМНАТ -->
     <div id="rooms-screen" class="screen">
         <header class="app-header">
             <div class="header-main">
@@ -61,6 +63,7 @@
         </main>
     </div>
 
+    <!-- ГЛАВНЫЙ ЭКРАН ПРИЛОЖЕНИЯ -->
     <div id="app-screen" class="screen">
         <header class="app-header">
             <div class="header-main">
@@ -78,10 +81,10 @@
                     <div class="room-id-display">Код: <code id="current-room-id" title="Нажми, чтобы скопировать">...</code></div>
                     <div class="stats-counter">
                         👥 Участников: <strong id="room-users-count">0</strong> | 
-                        📌 Карточек: <strong id="total-count">0</strong>
+                        📌 Карточек: <strong id="total-count">0</strong> |
+                        🪙 Монет в комнате: <strong id="room-coins-total">0</strong>
                     </div>
                     <button id="start-santa-btn" class="btn-secondary" style="display: none; margin: 10px 0;">🎲 Запустить Тайного Санту</button>
-                    
                     <button id="btn-santa-chat" class="btn-primary" style="display: none; margin: 10px 0; background: #e03131;">🎅 Чат Санты</button>
                 </div>
 
@@ -116,8 +119,7 @@
             </div>
 
             <div class="sections-manager">
-                <div class="tabs-container" id="tabs-wrapper">
-                    </div>
+                <div class="tabs-container" id="tabs-wrapper"></div>
                 <button id="btn-show-add-section" class="btn-secondary" style="margin: 0 auto 1.5rem auto; display: block; font-size: 0.85rem;">🛠️ Настройка разделов</button>
                 
                 <div id="add-section-panel" class="admin-panel" style="display: none; margin-bottom: 1.5rem;">
@@ -126,9 +128,7 @@
                             <input type="text" id="new-section-name" placeholder="Название раздела (Книги)" required>
                             <input type="text" id="new-section-emoji" placeholder="Эмодзи (📚)" style="width:80px; text-align:center;" required>
                         </div>
-                        
                         <div id="custom-fields-container" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
-                        
                         <button type="button" id="btn-add-custom-field" class="btn-secondary" style="margin-bottom:15px; font-size: 0.85rem;">+ Добавить свое поле</button>
                         <button type="submit" class="btn-primary btn-block">Создать раздел</button>
                     </form>
@@ -175,25 +175,30 @@
                             <option value="price-asc">🪙 Сначала дешевле</option>
                             <option value="price-desc">💎 Сначала дороже</option>
                         </select>
-                        <button id="btn-random-card" class="btn-secondary" title="Выбрать случайную карточку из списка">🎲 Рандом</button>
+                        <button id="btn-random-card" class="btn-primary" style="max-width: 200px;">🎲 Рандом выбор</button>
                     </div>
                     <div class="section-cost-banner" id="section-cost-summary">💰 Общая: <span>0 ₽</span> | На человека: <span>0 ₽</span></div>
                     <div id="gifts-container" class="gifts-grid"></div>
                 </div>
             </div>
 
+            <!-- БОКОВАЯ ПАНЕЛЬ: ЧАТ И ОПРОСЫ -->
             <aside id="chat-panel" class="sidebar-panel">
                 <div class="sidebar-header">
                     <h3>💬 Чат комнаты</h3>
                     <button id="close-chat-btn" class="btn-icon mobile-only">✖</button>
                 </div>
                 
+                <!-- Контейнер для быстрого опроса над чатом -->
                 <div id="poll-container" class="poll-container" style="display: none;">
-                    <div id="poll-question" class="poll-question">...</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <div id="poll-question" class="poll-question"></div>
+                        <button id="btn-close-poll" class="btn-icon" style="display: none; font-size: 1rem;" title="Удалить опрос">✖</button>
+                    </div>
                     <div id="poll-options" class="poll-options"></div>
-                    <button id="btn-close-poll" class="btn-icon" style="position:absolute; top:5px; right:5px; font-size:1rem; display:none;">✖</button>
                 </div>
-                <button id="btn-show-create-poll" class="btn-secondary" style="margin: 5px 10px; font-size: 0.8rem; display: none;">+ Создать опрос</button>
+                
+                <button id="btn-show-create-poll" class="btn-secondary" style="margin: 10px; display: none; font-size: 0.85rem;">📊 Создать опрос</button>
 
                 <div id="chat-messages" class="chat-messages"></div>
                 <form id="chat-form" class="chat-input-area">
@@ -202,6 +207,7 @@
                 </form>
             </aside>
 
+            <!-- БОКОВАЯ ПАНЕЛЬ: ДЕЛА -->
             <aside id="todo-panel" class="sidebar-panel">
                 <div class="sidebar-header">
                     <h3>📅 Список дел на сегодня</h3>
@@ -223,6 +229,7 @@
         </main>
     </div>
 
+    <!-- МОДАЛЬНОЕ ОКНО: ПРОФИЛЬ -->
     <div id="profile-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -234,7 +241,8 @@
                 <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">Выберите ваш Аватар-Эмодзи:</p>
                 <div class="emoji-picker-grid" id="emoji-selector" style="margin-bottom: 15px;"></div>
                 
-                <button type="button" onclick="changeMyName()" class="btn-secondary btn-block" style="font-size: 0.9rem;">✏️ Изменить отображаемое имя</button>
+                <p style="font-size:0.85rem; margin-bottom:5px;">Ваша валюта: <strong id="shop-karma-display">0</strong> ✨</p>
+                <button type="button" onclick="changeMyName()" class="btn-secondary btn-block" style="font-size: 0.9rem; margin-bottom: 10px;">✏️ Изменить отображаемое имя</button>
             </div>
             <div class="titles-zone" style="margin-bottom: 15px;">
                 <h3>👑 Выберите звание</h3>
@@ -247,6 +255,51 @@
         </div>
     </div>
 
+    <!-- МОДАЛЬНОЕ ОКНО: МАГАЗИН ДУХА -->
+    <div id="shop-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🛍️ Магазин Духа</h2>
+                <button class="btn-icon" onclick="document.getElementById('shop-modal').classList.remove('active')">✖</button>
+            </div>
+            <p style="margin-bottom:15px; font-size:0.95rem;">Тратьте заработанные монеты на кастомные фоны или редкие титулы!</p>
+            <div id="shop-items-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: СОЗДАНИЕ ОПРОСА -->
+    <div id="create-poll-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Создать новый опрос</h2>
+                <button class="btn-icon" onclick="document.getElementById('create-poll-modal').classList.remove('active')">✖</button>
+            </div>
+            <form id="create-poll-form" style="display:flex; flex-direction:column; gap:10px;">
+                <input type="text" id="poll-q-input" placeholder="Вопрос (например: Какой бюджет?)" required>
+                <input type="text" class="poll-opt-input" placeholder="Вариант ответа 1" required>
+                <input type="text" class="poll-opt-input" placeholder="Вариант ответа 2" required>
+                <input type="text" class="poll-opt-input" placeholder="Вариант ответа 3 (необязательно)">
+                <button type="submit" class="btn-primary btn-block">Опубликовать</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: АНОНИМНЫЙ ЧАТ С САНТОЙ -->
+    <div id="santa-chat-modal" class="modal">
+        <div class="modal-content" style="max-width:450px;">
+            <div class="modal-header">
+                <h2 id="santa-chat-title">Чат с Сантой</h2>
+                <button class="btn-icon" onclick="document.getElementById('santa-chat-modal').classList.remove('active')">✖</button>
+            </div>
+            <div id="santa-chat-messages" class="chat-messages" style="height:250px; border:1px solid var(--border-color); border-radius:8px; margin-bottom:10px; overflow-y:auto;"></div>
+            <form id="santa-chat-form" class="chat-input-area" style="padding:0; border:none;">
+                <input type="text" id="santa-chat-input" placeholder="Напишите анонимно..." required autocomplete="off">
+                <button type="submit" class="btn-primary">➤</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ПРОЧИЕ МОДАЛКИ (ПРОФИЛЬ ДРУГОГО, РЕДАКТИРОВАНИЕ, ЛАЙТБОКС) -->
     <div id="other-profile-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -285,51 +338,6 @@
 
     <div id="lightbox-modal" class="lightbox" onclick="this.classList.remove('active')">
         <img id="lightbox-img" src="" alt="Полноэкранное фото">
-    </div>
-
-    <div id="shop-modal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2>🛍️ Магазин Духа</h2>
-                <button class="btn-icon" onclick="document.getElementById('shop-modal').classList.remove('active')">✖</button>
-            </div>
-            <div style="margin-bottom: 15px; text-align: center;">
-                Ваша Карма: <strong style="color:var(--primary-color); font-size:1.2rem;" id="shop-karma-display">0</strong> ✨<br>
-                <span style="font-size:0.8rem; color:var(--text-muted);">Зарабатывайте карму, добавляя карточки и исполняя желания!</span>
-            </div>
-            <div id="shop-items-container" style="display: flex; flex-direction: column; gap: 10px;">
-                </div>
-        </div>
-    </div>
-
-    <div id="santa-chat-modal" class="modal">
-        <div class="modal-content" style="display: flex; flex-direction: column; height: 80vh; max-width: 450px;">
-            <div class="modal-header">
-                <h2 id="santa-chat-title">Анонимный чат</h2>
-                <button class="btn-icon" onclick="document.getElementById('santa-chat-modal').classList.remove('active')">✖</button>
-            </div>
-            <div id="santa-chat-messages" class="chat-messages" style="flex:1; background: var(--bg-main); border-radius: 8px; margin-bottom: 10px;"></div>
-            <form id="santa-chat-form" style="display: flex; gap: 5px;">
-                <input type="text" id="santa-chat-input" placeholder="Сообщение..." required autocomplete="off" style="margin-bottom:0;">
-                <button type="submit" class="btn-primary">➤</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="create-poll-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Создать Опрос</h2>
-                <button class="btn-icon" onclick="document.getElementById('create-poll-modal').classList.remove('active')">✖</button>
-            </div>
-            <form id="create-poll-form">
-                <input type="text" id="poll-q-input" placeholder="Вопрос (напр. Куда пойдем?)" required>
-                <input type="text" class="poll-opt-input" placeholder="Вариант 1" required>
-                <input type="text" class="poll-opt-input" placeholder="Вариант 2" required>
-                <input type="text" class="poll-opt-input" placeholder="Вариант 3 (необязательно)">
-                <button type="submit" class="btn-primary btn-block" style="margin-top: 15px;">Запустить Опрос</button>
-            </form>
-        </div>
     </div>
 
     <script type="module" src="script.js"></script>
