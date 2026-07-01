@@ -35,10 +35,6 @@ let isHubViewActive = true;
 let mySantaTarget = null;
 let currentQuest = null;
 
-let searchQuery = '';
-let currentSort = 'default';
-let currentUserFilter = 'all'; 
-
 const PRESET_EMOJIS = ['🦊','🐱','🐻','🐼','🦁','🐸','🐵','🦄','🤖','🧙','🥷','🧑‍🚀','🐙','🐹','🐰','🐯'];
 const PRESET_SECTIONS = ['wish', 'date', 'movie', 'completed'];
 
@@ -48,7 +44,7 @@ const SHOP_ITEMS = [
     { id: 'bg3', name: 'Обои: Космос', type: 'bg', price: 300, val: '#0f172a' },
     { id: 'bg_reset', name: 'Обои: По умолчанию', type: 'bg', price: 0, val: '' },
     { id: 'title1', name: 'Титул: 👑 Легенда', type: 'title', price: 500, val: '👑 Легенда' },
-    { id: 'title2', name: 'Титул: 👻 Лучший друг Духа', type: 'title', price: 300, val: '👻 Лучший друг Духа' }
+    { id: 'title2', name: 'Титул: 👻 Друг Духа', type: 'title', price: 300, val: '👻 Лучший друг Духа' }
 ];
 
 const DOM = {
@@ -72,7 +68,7 @@ window.getDisplayName = (login) => {
 
 window.changeMyName = async () => {
     const currentName = getDisplayName(currentUser);
-    const newName = prompt("Введите новое имя (будет отображаться везде):", currentName);
+    const newName = prompt("Введите новое имя:", currentName);
     if (newName && newName.trim() !== "" && newName !== currentName) {
         const safeMe = getSafeUserKey(currentUser);
         await update(ref(db, `users/${safeMe}`), { displayName: newName.trim() });
@@ -93,7 +89,6 @@ function init() {
     if (currentUser) { loadUserProfile(); showRoomsScreen(); } else { showLoginScreen(); }
 }
 
-// УПРАВЛЕНИЕ КАРМОЙ
 async function addKarma(amount) {
     userKarma += amount;
     const safeUser = getSafeUserKey(currentUser);
@@ -121,11 +116,13 @@ function loadUserProfile() {
 
 function buildEmojiPicker() {
     const box = document.getElementById('emoji-selector');
+    if (!box) return;
     box.innerHTML = '';
     PRESET_EMOJIS.forEach(emoji => {
         const item = document.createElement('div');
         item.className = 'emoji-picker-item';
         item.textContent = emoji;
+        item.style.cursor = 'pointer';
         item.onclick = async () => {
             if(currentUser) await update(ref(db, `users/${getSafeUserKey(currentUser)}`), { avatar: emoji });
         };
@@ -144,8 +141,8 @@ function showLoginScreen() {
     DOM.screens.app.classList.remove('active'); DOM.screens.rooms.classList.remove('active'); DOM.screens.login.classList.add('active');
 }
 function showRoomsScreen() {
-    document.body.style.background = ''; // Сброс фона
-    DOM.screens.login.classList.remove('active'); DOM.screens.app.classList.remove('active'); DOM.screens.rooms.classList.add('active');
+    document.body.style.background = '';
+    DOM.screens.login.classList.remove('active'); DOM.screens.app.classList.remove('active'); DOM.screens.rooms.add('active');
     loadUserProfile(); listenToRooms();
 }
 
@@ -253,7 +250,7 @@ document.getElementById('btn-show-add-section').onclick = () => {
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 };
 
-// ----------------- КВЕСТЫ -----------------
+// КВЕСТЫ
 async function checkDailyQuest() {
     const dateStr = new Date().toLocaleDateString();
     const questRef = ref(db, `rooms/${currentRoomId}/quest`);
@@ -305,7 +302,7 @@ async function updateQuestProgress(actionType) {
     }
 }
 
-// ----------------- МАГАЗИН -----------------
+// МАГАЗИН ДУХА
 document.getElementById('btn-open-shop').onclick = () => {
     const container = document.getElementById('shop-items-container');
     container.innerHTML = '';
@@ -317,7 +314,7 @@ document.getElementById('btn-open-shop').onclick = () => {
         `;
         div.querySelector('button').onclick = async () => {
             if (userKarma >= item.price) {
-                if (confirm(`Купить "${item.name}" за ${item.price} кармы?`)) {
+                if (confirm(`Купить "${item.name}" за ${item.price} монет?`)) {
                     await addKarma(-item.price);
                     if (item.type === 'bg') { await update(ref(db, `rooms/${currentRoomId}/settings`), { background: item.val }); }
                     if (item.type === 'title') { await update(ref(db, `users/${getSafeUserKey(currentUser)}`), { selectedTitle: item.val }); }
@@ -330,11 +327,20 @@ document.getElementById('btn-open-shop').onclick = () => {
     document.getElementById('shop-modal').classList.add('active');
 };
 
+function calculateRoomCoinsTotal(usersData) {
+    if (!roomUsersList || !usersData) return;
+    let sum = 0;
+    roomUsersList.forEach(username => {
+        const safe = getSafeUserKey(username);
+        if (usersData[safe]) sum += (usersData[safe].karma || 0);
+    });
+    const totalCoinsEl = document.getElementById('room-coins-total');
+    if (totalCoinsEl) totalCoinsEl.textContent = sum;
+}
 
 function listenToRoomData() {
     if (!currentRoomId) return;
 
-    // Слушатель настроек комнаты (Фоны)
     onValue(ref(db, `rooms/${currentRoomId}/settings/background`), (snap) => {
         const bg = snap.val();
         if (bg) document.body.style.background = bg;
@@ -349,6 +355,7 @@ function listenToRoomData() {
             roomUsersTitles[k] = users[k].selectedTitle || '👶 Новичок';
             displayNames[k] = users[k].displayName || k;
         });
+        calculateRoomCoinsTotal(users);
         if (!isHubViewActive) renderGifts();
     });
 
@@ -391,9 +398,9 @@ function listenToRoomData() {
         roomUsersList = snapshot.val() ? Object.values(snapshot.val()) : [];
         if (DOM.app.usersCount) DOM.app.usersCount.textContent = roomUsersList.length;
         updateUserFilterDropdown();
+        get(ref(db, `users`)).then(s => calculateRoomCoinsTotal(s.val()));
     });
 
-    // САНТА
     onValue(ref(db, `rooms/${currentRoomId}/secret_santa`), (snapshot) => {
         const data = snapshot.val();
         const safeMe = getSafeUserKey(currentUser);
@@ -401,14 +408,15 @@ function listenToRoomData() {
         const banner = document.getElementById('secret-santa-banner');
 
         if (data) {
-            santaBtn.style.display = 'inline-block';
+            if (santaBtn) santaBtn.style.display = 'inline-block';
             if (data[safeMe]) {
                 mySantaTarget = data[safeMe];
                 banner.style.display = 'block';
                 document.getElementById('santa-target').textContent = getDisplayName(mySantaTarget);
             }
         } else {
-            santaBtn.style.display = 'none'; banner.style.display = 'none'; mySantaTarget = null;
+            if (santaBtn) santaBtn.style.display = 'none'; 
+            banner.style.display = 'none'; mySantaTarget = null;
         }
     });
 }
@@ -582,8 +590,8 @@ async function toggleBuyGift(giftId, isCurrentlyChecked) {
     }
 }
 
-async function contributeToGift(gift) {
-    const remaining = gift.price - gift.fundedAmount;
+async function contributeToGift(giftId, currentFunded, price) {
+    const remaining = price - currentFunded;
     if (remaining <= 0) { alert('Эта карточка уже полностью оплачена!'); return; }
     
     const amountStr = prompt(`Сколько вы хотите скинуть? (Осталось собрать: ${remaining} ₽)`);
@@ -594,19 +602,18 @@ async function contributeToGift(gift) {
     if (amount > remaining) { alert(`Вы не можете внести больше остатка (${remaining} ₽)`); return; }
 
     const safeUsername = getSafeUserKey(currentUser);
-    const userFundRef = ref(db, `rooms/${currentRoomId}/gifts/${gift.id}/funders/${safeUsername}`);
+    const userFundRef = ref(db, `rooms/${currentRoomId}/gifts/${giftId}/funders/${safeUsername}`);
     const snap = await get(userFundRef);
     const currentFund = snap.val() || 0;
 
-    await update(ref(db, `rooms/${currentRoomId}/gifts/${gift.id}`), {
-        fundedAmount: gift.fundedAmount + amount
-    });
+    const totalNewFunded = currentFunded + amount;
+    await update(ref(db, `rooms/${currentRoomId}/gifts/${giftId}`), { fundedAmount: totalNewFunded });
     await set(userFundRef, currentFund + amount);
     await addKarma(20);
     
-    if (gift.fundedAmount + amount >= gift.price) {
+    if (totalNewFunded >= price) {
         if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 } });
-        await set(ref(db, `rooms/${currentRoomId}/gifts/${gift.id}/buyers/${safeUsername}`), true);
+        await set(ref(db, `rooms/${currentRoomId}/gifts/${giftId}/buyers/${safeUsername}`), true);
     }
 }
 
@@ -620,7 +627,6 @@ document.getElementById('btn-random-card').onclick = () => {
     if (processedGifts.length === 0) { alert("В этом разделе нет карточек для выбора."); return; }
     const randomCard = processedGifts[Math.floor(Math.random() * processedGifts.length)];
     
-    // Подсветка карточки
     const cards = document.querySelectorAll('.gift-card');
     cards.forEach(c => c.classList.remove('highlight'));
     
@@ -630,7 +636,6 @@ document.getElementById('btn-random-card').onclick = () => {
         targetEl.classList.add('highlight');
         setTimeout(() => targetEl.classList.remove('highlight'), 3000);
     }
-    
     if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 40, origin: { y: 0.2 } });
 };
 
@@ -682,7 +687,7 @@ function renderGifts() {
 
         let priceHtml = gift.price > 0 ? `<div class="gift-price">${gift.price.toLocaleString('ru-RU')} ₽</div>` : '';
         
-        // Краудфандинг Бар
+        // КРАУДФАНДИНГ ПРОГРЕСС-БАР
         let fundingHtml = '';
         if (gift.price > 0 && gift.fundedAmount > 0) {
             const perc = Math.min(100, (gift.fundedAmount / gift.price) * 100);
@@ -756,7 +761,7 @@ function renderGifts() {
         }
         card.appendChild(buyersDiv);
 
-        // Кнопки Действий (Купить полностью или Скинуться)
+        // КНОПКИ ДЕЙСТВИЙ
         const actionsRow = document.createElement('div'); actionsRow.className = 'gift-actions-row';
         
         const buyBtn = document.createElement('button'); 
@@ -765,11 +770,12 @@ function renderGifts() {
         buyBtn.onclick = (e) => { e.stopPropagation(); toggleBuyGift(gift.id, isMeChecked); };
         actionsRow.appendChild(buyBtn);
 
+        // Кнопка краудфандинга (скинуться частями)
         if (gift.price > 0 && !isMeChecked) {
             const fundBtn = document.createElement('button'); 
             fundBtn.className = 'btn-fund-action';
             fundBtn.innerHTML = '💸 Скинуться';
-            fundBtn.onclick = (e) => { e.stopPropagation(); contributeToGift(gift); };
+            fundBtn.onclick = (e) => { e.stopPropagation(); contributeToGift(gift.id, gift.fundedAmount, gift.price); };
             actionsRow.appendChild(fundBtn);
         }
         
@@ -803,6 +809,7 @@ document.getElementById('edit-gift-form').addEventListener('submit', async (e) =
 function calculateAchievements() {
     const list = document.getElementById('profile-achievements-list');
     const titlesList = document.getElementById('profile-titles-list');
+    if (!list || !titlesList) return;
     list.innerHTML = ''; titlesList.innerHTML = '';
     
     const myCreatedCount = giftsData.filter(g => g.createdBy === currentUser).length;
@@ -815,14 +822,10 @@ function calculateAchievements() {
     if(myCreatedCount >= 1) achievements.push({ text: '💡 Искорка', desc: 'Добавил свою первую хотелку' });
     if(myCreatedCount >= 5) availableTitles.push('📝 Архивариус Желаний');
     if(myCreatedCount >= 10) achievements.push({ text: '👑 Генератор Идей', desc: 'Добавил более 10 хотелок' });
-    if(myCreatedCount >= 25) { achievements.push({ text: '🐉 Дракон Желаний', desc: 'Собрал гору сокровищ (25+)' }); availableTitles.push('🌌 Властелин Вселенной'); }
     
     if(myGivenCount >= 1) achievements.push({ text: '❤️ Добряк', desc: 'Взялся исполнить чье-то желание' });
     if(myGivenCount >= 2) availableTitles.push('✨ Волшебник');
-    if(myGivenCount >= 5) { achievements.push({ text: '🎅 Настоящий Санта', desc: 'Исполнил 5 желаний!' }); availableTitles.push('🔱 Благодетель'); }
 
-    // Титулы из магазина (если уже были выбраны, мы их не потеряем, они просто работают)
-    // Мы можем загружать купленные титулы, но пока просто дадим возможность выбирать базовые + активный
     if (userTitle && !availableTitles.includes(userTitle)) availableTitles.push(userTitle);
 
     availableTitles.forEach(titleText => {
@@ -856,9 +859,7 @@ function showOtherProfile(username) {
     achievementsList.innerHTML = '';
     const achievements = [];
     if(theirCreatedCount >= 1) achievements.push({ text: '💡 Мечтатель' });
-    if(theirCreatedCount >= 10) achievements.push({ text: '👑 Генератор Идей' });
     if(theirGivenCount >= 1) achievements.push({ text: '❤️ Добряк' });
-    if(theirGivenCount >= 5) achievements.push({ text: '🎅 Настоящий Санта' });
 
     if(achievements.length === 0) achievementsList.innerHTML = '<div style="color:var(--text-muted)">Пока нет достижений.</div>';
     achievements.forEach(ach => {
@@ -868,7 +869,7 @@ function showOtherProfile(username) {
     document.getElementById('other-profile-modal').classList.add('active');
 }
 
-// ----------------- РАСПИСАНИЕ -----------------
+// РАСПИСАНИЕ
 document.getElementById('toggle-todo-btn').onclick = () => { DOM.todo.panel.classList.toggle('open'); };
 document.getElementById('close-todo-btn').onclick = () => { DOM.todo.panel.classList.remove('open'); };
 
@@ -905,7 +906,7 @@ document.getElementById('add-schedule-form').addEventListener('submit', async (e
     }
 });
 
-// ----------------- СЛУЧАЙНЫЕ СОБЫТИЯ ДУХА -----------------
+// ЧАТ ДУХА И АНАЛИЗ ТЕКСТА
 async function pushSpiritMessage(text) {
     if(!currentRoomId) return;
     await push(ref(db, `rooms/${currentRoomId}/messages`), { sender: 'Дух Комнаты', text: text, timestamp: Date.now(), isSpirit: true });
@@ -913,8 +914,8 @@ async function pushSpiritMessage(text) {
 
 async function analyzeChatSentiment(text) {
     const lower = text.toLowerCase();
-    const positiveWords = ['спасибо', 'круто', 'ура', 'люблю', 'класс', 'мило', 'отлично', 'лучший', 'красиво', 'топ'];
-    const negativeWords = ['блин', 'черт', 'дурак', 'плохо', 'ужас', 'бесит', 'капец', 'тупо', 'отстой', 'скучно'];
+    const positiveWords = ['спасибо', 'круто', 'ура', 'люблю', 'класс', 'мило', 'отлично', 'лучший'];
+    const negativeWords = ['блин', 'черт', 'плохо', 'ужас', 'бесит', 'тупо', 'отстой', 'скучно'];
 
     let angerChange = 0; let kindnessChange = 0; let luckChange = 0;
 
@@ -925,18 +926,17 @@ async function analyzeChatSentiment(text) {
     if (kindnessChange !== 0) await triggerTamagochiChange('kindness', kindnessChange);
     if (luckChange !== 0) await triggerTamagochiChange('luck', luckChange);
 
-    // Шанс 10% на ответ Духа, если написано хорошее/плохое слово
     if (Math.random() < 0.1) {
         if (kindnessChange > 0) pushSpiritMessage("Мне нравятся такие позитивные вибрации! ✨");
         if (angerChange > 0) pushSpiritMessage("Не ругайтесь, а то я заберу вашу удачу! 👿");
     }
 }
 
-// ----------------- ОПРОСЫ В ЧАТЕ -----------------
+// СИСТЕМА ОПРОСОВ
 function listenToPolls() {
     if (!currentRoomId) return;
     const creatorBtn = document.getElementById('btn-show-create-poll');
-    creatorBtn.style.display = (currentUser === currentRoomCreator) ? 'block' : 'none';
+    if (creatorBtn) creatorBtn.style.display = (currentUser === currentRoomCreator) ? 'block' : 'none';
 
     onValue(ref(db, `rooms/${currentRoomId}/poll`), (snap) => {
         const poll = snap.val();
@@ -971,16 +971,14 @@ function listenToPolls() {
             row.onclick = async () => {
                 const safeMe = getSafeUserKey(currentUser);
                 const updates = {};
-                // Убираем старый голос
                 poll.options.forEach((o, i) => { if (o.votes && o.votes[safeMe]) updates[`options/${i}/votes/${safeMe}`] = null; });
-                // Ставим новый (если не кликнули по своему же)
                 if (!isMyVote) updates[`options/${index}/votes/${safeMe}`] = true;
                 await update(ref(db, `rooms/${currentRoomId}/poll`), updates);
             };
             optsContainer.appendChild(row);
         });
 
-        if (currentUser === currentRoomCreator) {
+        if (currentUser === currentRoomCreator && closeBtn) {
             closeBtn.style.display = 'block';
             closeBtn.onclick = async () => await remove(ref(db, `rooms/${currentRoomId}/poll`));
         }
@@ -1001,7 +999,7 @@ document.getElementById('create-poll-form').addEventListener('submit', async (e)
     } else { alert('Введите вопрос и минимум 2 варианта ответа.'); }
 });
 
-// ----------------- ЧАТ И ЧАТ С САНТОЙ -----------------
+// ЧАТ И АНОНИМНЫЙ САНТА ЧАТ
 document.getElementById('toggle-chat-btn').onclick = () => { DOM.chat.panel.classList.toggle('open'); };
 document.getElementById('close-chat-btn').onclick = () => { DOM.chat.panel.classList.remove('open'); };
 
@@ -1045,23 +1043,15 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
     }
 });
 
-// АНОНИМНЫЙ ЧАТ С САНТОЙ
 let santaChatRef = null;
 document.getElementById('btn-santa-chat').onclick = () => {
-    // Если я Санта для кого-то, я читаю чат по ключу моего подопечного. Если я ничей не Санта, я читаю свой.
-    // На самом деле проще: всегда открываем ветку того, кто является ПОДОПЕЧНЫМ.
-    // Если кнопка появилась, значит либо у меня есть Санта, либо я Санта для `mySantaTarget`.
-    // Чтобы не усложнять: Ветка называется ключом Подопечного.
-    // Если `mySantaTarget` !== null, значит Я Санта для mySantaTarget. Ветка: `santa_chats/mySantaTarget`
-    // Иначе (Я Подопечный, хочу написать своему Санте). Ветка: `santa_chats/myKey`
-    
     const safeMe = getSafeUserKey(currentUser);
     const chatBranch = mySantaTarget ? getSafeUserKey(mySantaTarget) : safeMe;
     
     document.getElementById('santa-chat-title').textContent = mySantaTarget ? 'Чат с Подопечным 🤫' : 'Чат с моим Сантой 🎅';
     document.getElementById('santa-chat-modal').classList.add('active');
 
-    if (santaChatRef) return; // Уже слушаем
+    if (santaChatRef) return; 
     santaChatRef = ref(db, `rooms/${currentRoomId}/santa_chats/${chatBranch}`);
     
     onValue(santaChatRef, (snapshot) => {
@@ -1077,7 +1067,6 @@ document.getElementById('btn-santa-chat').onclick = () => {
                 if (!isMine) {
                     const author = document.createElement('div');
                     author.style.cssText = 'font-weight:bold; font-size:0.8rem; margin-bottom:4px; color:#e03131;';
-                    // Если я Санта, пишут мне (Подопечный). Если я Подопечный, пишет Санта.
                     author.textContent = mySantaTarget ? 'Ваш Подопечный' : 'Ваш Санта 🎅';
                     div.appendChild(author);
                 }
