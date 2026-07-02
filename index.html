@@ -10,6 +10,7 @@
 </head>
 <body>
 
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
     <div id="login-screen" class="screen active">
         <div class="login-card">
             <h1>Добро пожаловать!</h1>
@@ -22,10 +23,11 @@
         </div>
     </div>
 
+    <!-- ЭКРАН ВЫБОРА КОМНАТ -->
     <div id="rooms-screen" class="screen">
         <header class="app-header">
             <div class="header-main">
-                <div class="user-profile" id="open-profile-btn" style="cursor: pointer;" title="Настройка профиля">
+                <div class="user-profile" id="open-profile-btn" style="cursor: pointer;" title="Нажмите для настройки профиля">
                     <div id="user-avatar" class="avatar-emoji-display">🦊</div>
                     <div class="user-greeting">
                         Привет, <span id="rooms-user-display" class="user-badge"></span>! 
@@ -61,6 +63,7 @@
         </main>
     </div>
 
+    <!-- ГЛАВНЫЙ ЭКРАН ПРИЛОЖЕНИЯ -->
     <div id="app-screen" class="screen">
         <header class="app-header">
             <div class="header-main">
@@ -79,9 +82,10 @@
                     <div class="stats-counter">
                         👥 Участников: <strong id="room-users-count">0</strong> | 
                         📌 Карточек: <strong id="total-count">0</strong> |
-                        🪙 Монет комнаты: <strong id="room-coins-total">0</strong>
+                        🪙 Монет в комнате: <strong id="room-coins-total">0</strong>
                     </div>
                     <button id="start-santa-btn" class="btn-secondary" style="display: none; margin: 10px 0;">🎲 Запустить Тайного Санту</button>
+                    <button id="btn-santa-chat" class="btn-primary" style="display: none; margin: 10px 0; background: #e03131;">🎅 Чат Санты</button>
                 </div>
 
                 <div class="tamagochi-card" id="tamagochi-widget">
@@ -98,20 +102,17 @@
                         <div class="stat-bar-container">😇 Добро: <div class="bar"><div id="bar-kind" class="progress" style="width: 50%"></div></div></div>
                         <div class="stat-bar-container">🔥 Злость: <div class="bar"><div id="bar-anger" class="progress" style="width: 10%"></div></div></div>
                     </div>
+                    <button id="btn-open-shop" class="btn-secondary btn-block" style="margin-top: 10px; font-size: 0.8rem; padding: 0.4rem;">🛍️ Магазин Духа</button>
                 </div>
             </div>
 
-            <!-- Блок квестов -->
+            <!-- БАННЕР КВЕСТА -->
             <div id="quest-banner" class="quest-banner" style="display: none;">
-                <div style="flex: 1;">
-                    <div class="quest-title">📜 Ежедневный квест (Награда: 100 🪙)</div>
-                    <div id="quest-text" style="font-size: 0.85rem; margin-top: 4px;">Загрузка...</div>
-                </div>
+                <div class="quest-title">📜 Квест: <span id="quest-text">...</span></div>
                 <div class="quest-progress">
-                    <span id="quest-count">0/0</span>
                     <div class="bar"><div id="quest-progress-bar" class="progress" style="width: 0%"></div></div>
+                    <span id="quest-count">0/0</span>
                 </div>
-                <button id="btn-open-shop" class="btn-secondary" style="font-size: 0.8rem; padding: 5px 10px; background: #fff;">🛒 Магазин (<span id="shop-karma-display">0</span> 🪙)</button>
             </div>
 
             <div id="secret-santa-banner" class="secret-santa-banner" style="display: none;">
@@ -125,12 +126,10 @@
                 <div id="add-section-panel" class="admin-panel" style="display: none; margin-bottom: 1.5rem;">
                     <form id="create-custom-section-form">
                         <div style="display:flex; gap:10px; margin-bottom:10px;">
-                            <input type="text" id="new-section-name" placeholder="Название (Книги)" required>
+                            <input type="text" id="new-section-name" placeholder="Название раздела (Книги)" required>
                             <input type="text" id="new-section-emoji" placeholder="Эмодзи (📚)" style="width:80px; text-align:center;" required>
                         </div>
-                        
                         <div id="custom-fields-container" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
-                        
                         <button type="button" id="btn-add-custom-field" class="btn-secondary" style="margin-bottom:15px; font-size: 0.85rem;">+ Добавить свое поле</button>
                         <button type="submit" class="btn-primary btn-block">Создать раздел</button>
                     </form>
@@ -143,8 +142,8 @@
                         <input type="text" id="gift-title-input" placeholder="Название карточки*" required autocomplete="off">
                         <input type="number" id="gift-price-input" placeholder="Оценочная стоимость (₽)*" required min="0" autocomplete="off">
                         <input type="url" id="gift-image-input" placeholder="Ссылка на фото" autocomplete="off">
-                        <input type="url" id="gift-link-input" placeholder="Ссылка на магазин" autocomplete="off">
-                        <input type="text" id="gift-duration-input" placeholder="Продолжительность" autocomplete="off">
+                        <input type="url" id="gift-link-input" placeholder="Ссылка на магазин / маркетплейс" autocomplete="off">
+                        <input type="text" id="gift-duration-input" placeholder="Продолжительность (для фильмов/действий)" autocomplete="off">
                     </div>
                     <input type="text" id="gift-note-input" placeholder="Примечание (до 50 слов, не обязательно)" autocomplete="off">
                     
@@ -177,25 +176,30 @@
                             <option value="price-asc">🪙 Сначала дешевле</option>
                             <option value="price-desc">💎 Сначала дороже</option>
                         </select>
+                        <button id="btn-random-card" class="btn-primary" style="max-width: 200px;">🎲 Рандом выбор</button>
                     </div>
                     <div class="section-cost-banner" id="section-cost-summary">💰 Общая: <span>0 ₽</span> | На человека: <span>0 ₽</span></div>
                     <div id="gifts-container" class="gifts-grid"></div>
                 </div>
             </div>
 
+            <!-- БОКОВАЯ ПАНЕЛЬ: ЧАТ И ОПРОСЫ -->
             <aside id="chat-panel" class="sidebar-panel">
                 <div class="sidebar-header">
                     <h3>💬 Чат комнаты</h3>
                     <button id="close-chat-btn" class="btn-icon mobile-only">✖</button>
                 </div>
+                
+                <button id="chat-poll-btn" class="btn-secondary" style="margin: 10px; font-size: 0.85rem;">📊 Создать опрос</button>
+
                 <div id="chat-messages" class="chat-messages"></div>
                 <form id="chat-form" class="chat-input-area">
-                    <input type="text" id="chat-input" placeholder="Сообщение..." autocomplete="off">
-                    <button type="button" id="chat-poll-btn" class="btn-secondary" title="Создать опрос" style="padding: 0 1rem; border-radius: 8px;">/</button>
-                    <button type="submit" class="btn-primary" style="padding: 0 1.2rem;">➤</button>
+                    <input type="text" id="chat-input" placeholder="Сообщение..." required autocomplete="off">
+                    <button type="submit" class="btn-primary">➤</button>
                 </form>
             </aside>
 
+            <!-- БОКОВАЯ ПАНЕЛЬ: ДЕЛА -->
             <aside id="todo-panel" class="sidebar-panel">
                 <div class="sidebar-header">
                     <h3>📅 Список дел на сегодня</h3>
@@ -217,34 +221,79 @@
         </main>
     </div>
 
-    <!-- Модалки -->
+    <!-- МОДАЛЬНОЕ ОКНО: ПРОФИЛЬ -->
     <div id="profile-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Настройка профиля</h2>
                 <button class="btn-icon close-profile-modal">✖</button>
             </div>
-            <div class="profile-layout">
-                <div class="avatar-setup-zone">
-                    <div style="text-align: center; margin-bottom: 10px;">
-                        <div class="current-modal-avatar" id="profile-current-avatar" style="font-size: 3rem; margin: 0 auto; display: inline-block;">🦊</div>
-                    </div>
-                    <button type="button" onclick="changeMyName()" class="btn-secondary btn-block" style="font-size: 0.9rem; margin-bottom: 15px;">✏️ Изменить имя</button>
-                    <p style="font-size:0.85rem; font-weight: bold; margin-bottom:8px;">Выберите Аватар:</p>
-                    <div class="emoji-picker-grid" id="emoji-selector"></div>
-                </div>
-                <div class="titles-zone" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                    <h3 style="font-size: 1rem; margin-bottom: 10px;">👑 Выберите звание</h3>
-                    <div id="profile-titles-list" class="titles-list"></div>
-                </div>
-                <div class="achievements-zone" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                    <h3 style="font-size: 1rem; margin-bottom: 10px;">🏆 Достижения комнаты</h3>
-                    <div id="profile-achievements-list" class="achievements-container"></div>
-                </div>
+            <div class="avatar-setup-zone">
+                <div class="current-modal-avatar" id="profile-current-avatar">🦊</div>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">Выберите ваш Аватар-Эмодзи:</p>
+                <div class="emoji-picker-grid" id="emoji-selector" style="margin-bottom: 15px;"></div>
+                
+                <p style="font-size:0.85rem; margin-bottom:5px;">Ваша валюта: <strong id="shop-karma-display">0</strong> 🪙</p>
+                <button type="button" onclick="changeMyName()" class="btn-secondary btn-block" style="font-size: 0.9rem; margin-bottom: 10px;">✏️ Изменить отображаемое имя</button>
+            </div>
+            <div class="titles-zone" style="margin-bottom: 15px;">
+                <h3>👑 Выберите звание</h3>
+                <div id="profile-titles-list" style="display:flex; flex-direction:column; gap:5px; font-size:0.9rem; margin-top:10px;"></div>
+            </div>
+            <div class="achievements-zone">
+                <h3>🏆 Ваши достижения</h3>
+                <div id="profile-achievements-list" class="achievements-container"></div>
             </div>
         </div>
     </div>
 
+    <!-- МОДАЛЬНОЕ ОКНО: МАГАЗИН ДУХА -->
+    <div id="shop-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🛍️ Магазин Духа</h2>
+                <button class="btn-icon" onclick="document.getElementById('shop-modal').classList.remove('active')">✖</button>
+            </div>
+            <p style="margin-bottom:15px; font-size:0.95rem;">Тратьте заработанные монеты на кастомные фоны или редкие титулы!</p>
+            <div id="shop-items-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: СОЗДАНИЕ ОПРОСА -->
+    <div id="poll-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Создать новый опрос</h2>
+                <button class="btn-icon" onclick="document.getElementById('poll-modal').classList.remove('active')">✖</button>
+            </div>
+            <form id="create-poll-form" style="display:flex; flex-direction:column; gap:10px;">
+                <input type="text" id="poll-question" placeholder="Вопрос (например: Какой бюджет?)" required>
+                <div id="poll-options-container" style="display:flex; flex-direction:column; gap:8px;">
+                    <input type="text" class="poll-option-input" placeholder="Вариант 1" required>
+                    <input type="text" class="poll-option-input" placeholder="Вариант 2" required>
+                </div>
+                <button type="button" class="btn-secondary" onclick="addPollOption()">+ Добавить вариант</button>
+                <button type="submit" class="btn-primary btn-block" style="margin-top: 10px;">Опубликовать в чат</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: АНОНИМНЫЙ ЧАТ С САНТОЙ -->
+    <div id="santa-chat-modal" class="modal">
+        <div class="modal-content" style="max-width:450px;">
+            <div class="modal-header">
+                <h2 id="santa-chat-title">Чат с Сантой</h2>
+                <button class="btn-icon" onclick="document.getElementById('santa-chat-modal').classList.remove('active')">✖</button>
+            </div>
+            <div id="santa-chat-messages" class="chat-messages" style="height:250px; border:1px solid var(--border-color); border-radius:8px; margin-bottom:10px; overflow-y:auto;"></div>
+            <form id="santa-chat-form" class="chat-input-area" style="padding:0; border:none;">
+                <input type="text" id="santa-chat-input" placeholder="Напишите анонимно..." required autocomplete="off">
+                <button type="submit" class="btn-primary">➤</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ПРОЧИЕ МОДАЛКИ (ПРОФИЛЬ ДРУГОГО, РЕДАКТИРОВАНИЕ, ЛАЙТБОКС) -->
     <div id="other-profile-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -252,12 +301,12 @@
                 <button class="btn-icon close-other-profile-modal">✖</button>
             </div>
             <div style="text-align:center; margin-bottom:20px;">
-                <div class="current-modal-avatar" id="other-profile-avatar" style="font-size: 3rem; display: inline-block; margin-bottom: 10px;">🦊</div>
+                <div class="current-modal-avatar" id="other-profile-avatar">🦊</div>
                 <h3 id="other-profile-name">Имя</h3>
-                <span id="other-profile-title" class="title-badge" style="font-size:0.9rem; display: inline-block; margin-top: 5px;">👶 Новичок</span>
+                <span id="other-profile-title" class="title-badge" style="font-size:0.9rem;">👶 Новичок</span>
             </div>
             <div class="achievements-zone">
-                <h3 style="font-size: 1rem; margin-bottom: 10px;">🏆 Достижения в комнате</h3>
+                <h3>🏆 Достижения в комнате</h3>
                 <div id="other-profile-achievements" class="achievements-container"></div>
             </div>
         </div>
@@ -277,35 +326,6 @@
                 <input type="text" id="edit-duration" placeholder="Продолжительность">
                 <input type="text" id="edit-note" placeholder="Примечание (до 50 слов)">
                 <button type="submit" class="btn-primary btn-block" style="margin-top: 15px;">Сохранить изменения</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="shop-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Магазин Духа</h2>
-                <button class="btn-icon" onclick="document.getElementById('shop-modal').classList.remove('active')">✖</button>
-            </div>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Тратьте заработанные монеты на улучшение комнаты и своего профиля.</p>
-            <div id="shop-items-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
-        </div>
-    </div>
-
-    <div id="poll-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Создать опрос</h2>
-                <button class="btn-icon" onclick="document.getElementById('poll-modal').classList.remove('active')">✖</button>
-            </div>
-            <form id="create-poll-form">
-                <input type="text" id="poll-question" placeholder="Вопрос (например: Какой бюджет?)" required style="margin-bottom: 15px;">
-                <div id="poll-options-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-                    <input type="text" class="poll-option-input" placeholder="Вариант 1" required>
-                    <input type="text" class="poll-option-input" placeholder="Вариант 2" required>
-                </div>
-                <button type="button" class="btn-secondary btn-block" onclick="addPollOption()">+ Добавить вариант</button>
-                <button type="submit" class="btn-primary btn-block" style="margin-top: 15px;">Отправить в чат</button>
             </form>
         </div>
     </div>
