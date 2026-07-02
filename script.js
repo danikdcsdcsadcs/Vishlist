@@ -93,9 +93,17 @@ function init() {
 }
 
 async function addKarma(amount) {
-    userKarma += amount;
     const safeUser = getSafeUserKey(currentUser);
-    await update(ref(db, `users/${safeUser}`), { karma: userKarma });
+    const snap = await get(ref(db, `users/${safeUser}/karma`));
+    let currentKarma = snap.val() || 0;
+    currentKarma += amount;
+    
+    await update(ref(db, `users/${safeUser}`), { karma: currentKarma });
+    
+    // Моментально обновляем интерфейс для баланса
+    userKarma = currentKarma;
+    document.getElementById('user-karma-display').textContent = userKarma;
+    document.getElementById('shop-karma-display').textContent = userKarma;
 }
 
 function loadUserProfile() {
@@ -280,19 +288,10 @@ document.getElementById('create-custom-section-form').addEventListener('submit',
     const name = document.getElementById('new-section-name').value.trim();
     const emoji = document.getElementById('new-section-emoji').value.trim();
     
-    const customFields = [];
-    document.querySelectorAll('#custom-fields-container > div').forEach(row => {
-        customFields.push({
-            name: row.querySelector('.custom-field-name').value.trim(),
-            type: row.querySelector('.custom-field-type').value,
-            required: row.querySelector('.custom-field-req').checked
-        });
-    });
-    
     if(name && emoji) {
         const cleanKey = 'custom_' + Date.now();
         await set(ref(db, `rooms/${currentRoomId}/sections/${cleanKey}`), { 
-            name, emoji, reqPrice: false, reqLink: false, reqDur: false, fields: customFields 
+            name, emoji, reqPrice: false, reqLink: false, reqDur: false, fields: [] 
         });
         
         document.getElementById('new-section-name').value = ''; 
@@ -304,41 +303,52 @@ document.getElementById('create-custom-section-form').addEventListener('submit',
     }
 });
 
-// КВЕСТЫ
+// КВЕСТЫ: Более частая генерация
 async function checkDailyQuest() {
-    const dateStr = new Date().toLocaleDateString();
     const questRef = ref(db, `rooms/${currentRoomId}/quest`);
     const snap = await get(questRef);
     let q = snap.val();
 
-    if (!q || q.date !== dateStr) {
+    if (!q || q.done) {
         const types = [
-            { id: 'add_gifts', text: 'Добавить 3 карточки в любой раздел', goal: 3 },
-            { id: 'add_schedule', text: 'Записать 2 дела в Расписание', goal: 2 },
-            { id: 'buy_gift', text: 'Взяться исполнить 1 желание', goal: 1 }
+            { id: 'add_gifts', text: 'Добавить 2 карточки в раздел', goal: 2 },
+            { id: 'add_schedule', text: 'Записать 1 дело в Расписание', goal: 1 },
+            { id: 'buy_gift', text: 'Взяться или скинуться на 1 желание', goal: 1 }
         ];
         const randomQ = types[Math.floor(Math.random() * types.length)];
-        q = { date: dateStr, type: randomQ.id, text: randomQ.text, goal: randomQ.goal, progress: 0, done: false };
+        q = { type: randomQ.id, text: randomQ.text, goal: randomQ.goal, progress: 0, done: false };
         await set(questRef, q);
     }
 
     onValue(questRef, (snapshot) => {
         currentQuest = snapshot.val();
-        if (currentQuest) {
+        if (currentQuest && !currentQuest.done) {
             document.getElementById('quest-banner').style.display = 'flex';
+            document.getElementById('quest-banner').style.opacity = '1';
             document.getElementById('quest-text').textContent = currentQuest.text;
             document.getElementById('quest-count').textContent = `${currentQuest.progress}/${currentQuest.goal}`;
             const perc = Math.min(100, (currentQuest.progress / currentQuest.goal) * 100);
             document.getElementById('quest-progress-bar').style.width = `${perc}%`;
             
-            if (currentQuest.done) {
-                document.getElementById('quest-banner').style.borderColor = 'var(--success-color)';
-                document.getElementById('quest-progress-bar').style.background = 'var(--success-color)';
-                document.getElementById('quest-text').textContent = "✅ Квест выполнен! Вы получили 100 🪙. Дух доволен.";
-            } else {
-                document.getElementById('quest-banner').style.borderColor = '#fcc419';
-                document.getElementById('quest-progress-bar').style.background = '#fcc419';
-            }
+            document.getElementById('quest-banner').style.borderColor = '#fcc419';
+            document.getElementById('quest-progress-bar').style.background = '#fcc419';
+        } else if (currentQuest && currentQuest.done) {
+             document.getElementById('quest-text').textContent = "✅ Квест выполнен! +100 🪙 зачислено!";
+             document.getElementById('quest-banner').style.borderColor = 'var(--success-color)';
+             document.getElementById('quest-progress-bar').style.background = 'var(--success-color)';
+             document.getElementById('quest-progress-bar').style.width = '100%';
+             
+             // Исчезает и регенерирует новый квест
+             setTimeout(async () => {
+                 document.getElementById('quest-banner').style.opacity = '0';
+                 setTimeout(async () => {
+                     document.getElementById('quest-banner').style.display = 'none';
+                     await remove(ref(db, `rooms/${currentRoomId}/quest`));
+                     checkDailyQuest(); // Генерируем сразу новый
+                 }, 500);
+             }, 2500);
+        } else {
+             document.getElementById('quest-banner').style.display = 'none';
         }
     });
 }
@@ -347,13 +357,14 @@ async function updateQuestProgress(actionType) {
     if (!currentQuest || currentQuest.done || currentQuest.type !== actionType) return;
     const newProg = currentQuest.progress + 1;
     let isDone = newProg >= currentQuest.goal;
+    
     await update(ref(db, `rooms/${currentRoomId}/quest`), { progress: newProg, done: isDone });
     
     if (isDone) {
         triggerTamagochiChange('luck', 15);
         triggerTamagochiChange('kindness', 15);
-        addKarma(100);
-        pushSpiritMessage("🎉 Кто-то выполнил квест дня! Я чувствую прилив сил и дарю 100 🪙!");
+        await addKarma(100); // Баланс пополняется моментально!
+        pushSpiritMessage("🎉 Кто-то выполнил квест! Я чувствую прилив сил и дарю 100 🪙!");
     }
 }
 
@@ -450,6 +461,11 @@ function listenToRoomData() {
         else document.body.style.background = '';
     });
 
+    onValue(ref(db, `rooms/${currentRoomId}/sectionOrder`), (snap) => {
+        window.currentSectionOrder = snap.val() || [];
+        if (!isHubViewActive) buildTabsSystem(); 
+    });
+
     onValue(ref(db, `users`), (snap) => {
         const users = snap.val() || {};
         roomUsersAvatars = {}; roomUsersTitles = {}; displayNames = {};
@@ -488,7 +504,8 @@ function listenToRoomData() {
                     price: Number(data[key].price) || 0, imageUrl: data[key].imageUrl || '', 
                     linkUrl: data[key].linkUrl || '', duration: data[key].duration || '',
                     note: data[key].note || '', createdBy: data[key].createdBy,
-                    rating: data[key].rating || 3, buyers: data[key].buyers || {}
+                    rating: data[key].rating || 3, buyers: data[key].buyers || {},
+                    contributors: data[key].contributors || {}
                 });
             });
         }
@@ -503,10 +520,23 @@ function listenToRoomData() {
     });
 }
 
+// Построение вкладок (Разделы) с Drag & Drop
 function buildTabsSystem() {
     const wrapper = document.getElementById('tabs-wrapper');
     wrapper.innerHTML = '';
-    const keys = Object.keys(customSections);
+    
+    let keys = Object.keys(customSections);
+    const sortOrder = window.currentSectionOrder || [];
+    
+    // Сортировка на основе сохраненного порядка (D&D)
+    keys.sort((a, b) => {
+        let indexA = sortOrder.indexOf(a);
+        let indexB = sortOrder.indexOf(b);
+        if(indexA === -1) indexA = 999;
+        if(indexB === -1) indexB = 999;
+        return indexA - indexB;
+    });
+
     const addCardPanel = document.getElementById('add-card-panel');
 
     if (isHubViewActive) {
@@ -528,6 +558,34 @@ function buildTabsSystem() {
             btn.className = `tab-btn ${currentTab === key ? 'active' : ''}`;
             btn.innerHTML = `<span>${customSections[key].emoji} ${customSections[key].name}</span>`;
             
+            // Настройка Drag & Drop
+            btn.draggable = true;
+            btn.dataset.key = key;
+
+            btn.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', key);
+                setTimeout(() => btn.classList.add('dragging'), 0);
+            });
+            btn.addEventListener('dragend', () => btn.classList.remove('dragging'));
+            btn.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                btn.classList.add('drag-over');
+            });
+            btn.addEventListener('dragleave', () => btn.classList.remove('drag-over'));
+            btn.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                btn.classList.remove('drag-over');
+                const draggedKey = e.dataTransfer.getData('text/plain');
+                const targetKey = key;
+                if (draggedKey && draggedKey !== targetKey) {
+                    let newOrder = keys.filter(k => k !== draggedKey);
+                    const targetIndex = newOrder.indexOf(targetKey);
+                    newOrder.splice(targetIndex, 0, draggedKey);
+                    await set(ref(db, `rooms/${currentRoomId}/sectionOrder`), newOrder);
+                    buildTabsSystem();
+                }
+            });
+
             if (!PRESET_SECTIONS.includes(key)) {
                 const delIcon = document.createElement('span');
                 delIcon.innerHTML = '❌';
@@ -567,7 +625,15 @@ function renderSectionsHub() {
     hubGrid.innerHTML = ''; hubGrid.style.display = 'grid';
     document.getElementById('active-tab-content-area').style.display = 'none';
 
-    Object.keys(customSections).forEach(key => {
+    let keys = Object.keys(customSections);
+    const sortOrder = window.currentSectionOrder || [];
+    keys.sort((a, b) => {
+        let indexA = sortOrder.indexOf(a); let indexB = sortOrder.indexOf(b);
+        if(indexA === -1) indexA = 999; if(indexB === -1) indexB = 999;
+        return indexA - indexB;
+    });
+
+    keys.forEach(key => {
         const count = giftsData.filter(g => {
             const hasBuyers = g.buyers && Object.keys(g.buyers).length > 0;
             return key === 'completed' ? hasBuyers : (g.type === key && !hasBuyers);
@@ -611,13 +677,44 @@ document.getElementById('add-gift-form').addEventListener('submit', async (e) =>
     if (title) {
         await push(ref(db, `rooms/${currentRoomId}/gifts`), {
             type: currentTab, title, price: Number(price), imageUrl: imageUrl || null, 
-            linkUrl: linkUrl || null, duration: duration || null, note, createdBy: currentUser, rating, buyers: {}
+            linkUrl: linkUrl || null, duration: duration || null, note, createdBy: currentUser, rating, buyers: {}, contributors: {}
         });
         await triggerTamagochiChange('luck', 4); 
         await updateQuestProgress('add_gifts'); // Проверка квеста
         document.getElementById('add-gift-form').reset();
     }
 });
+
+// АНИМАЦИЯ РАНДОМАЙЗЕРА
+document.getElementById('btn-random-card').onclick = async () => {
+    const cards = document.querySelectorAll('.gift-card');
+    if (cards.length === 0) { alert('Нет карточек для выбора!'); return; }
+
+    let times = 0;
+    const maxTimes = 20; 
+    let currentInterval = 100;
+
+    const runRandomizer = () => {
+        cards.forEach(c => c.classList.remove('highlight'));
+        const randomIndex = Math.floor(Math.random() * cards.length);
+        const randomCard = cards[randomIndex];
+        randomCard.classList.add('highlight');
+        
+        // Скроллим так, чтобы карточка была видна
+        randomCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        times++;
+        if (times < maxTimes) {
+            currentInterval += (times * 5); // Эффект замедления рулетки
+            setTimeout(runRandomizer, currentInterval);
+        } else {
+            // Остановка
+            if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            setTimeout(() => { randomCard.classList.remove('highlight'); }, 3000);
+        }
+    };
+    runRandomizer();
+};
 
 async function toggleBuyGift(giftId, isCurrentlyChecked) {
     const safeUsername = getSafeUserKey(currentUser);
@@ -630,6 +727,20 @@ async function toggleBuyGift(giftId, isCurrentlyChecked) {
         if (typeof confetti === 'function') confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
     } else {
         await remove(buyerRef); await triggerTamagochiChange('anger', 8);
+    }
+}
+
+// СКИНУТЬСЯ (Chip In)
+async function toggleChipIn(giftId, isCurrentlyContributor) {
+    const safeUsername = getSafeUserKey(currentUser);
+    const contribRef = ref(db, `rooms/${currentRoomId}/gifts/${giftId}/contributors/${safeUsername}`);
+    if (!isCurrentlyContributor) {
+        await set(contribRef, true);
+        await triggerTamagochiChange('kindness', 5);
+        await updateQuestProgress('buy_gift'); // Тоже засчитываем квест
+        if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 40 });
+    } else {
+        await remove(contribRef);
     }
 }
 
@@ -662,7 +773,11 @@ function renderGifts() {
     if (processedGifts.length === 0) { DOM.gifts.container.innerHTML = '<div class="loading-placeholder">В этом разделе пока пусто</div>'; return; }
 
     processedGifts.forEach(gift => {
-        const isMeChecked = !!(gift.buyers && gift.buyers[getSafeUserKey(currentUser)]);
+        const safeUsername = getSafeUserKey(currentUser);
+        const isMeChecked = !!(gift.buyers && gift.buyers[safeUsername]);
+        const contributors = gift.contributors || {};
+        const isMeContributor = !!contributors[safeUsername];
+
         const card = document.createElement('div'); 
         card.className = 'gift-card';
         if (isMeChecked) card.style.borderColor = 'var(--success-color)';
@@ -697,6 +812,15 @@ function renderGifts() {
             ${noteHtml}
         `;
 
+        // Отрисовка списка тех, кто "скидывается"
+        const contribDiv = document.createElement('div');
+        contribDiv.className = 'gift-contributors';
+        if (Object.keys(contributors).length > 0) {
+            const names = Object.keys(contributors).map(c => `<span class="contributor-tag">${getDisplayName(c)}</span>`).join('');
+            contribDiv.innerHTML = `<div style="font-size:0.8rem; margin-bottom: 5px;">💸 Скидываются: ${names}</div>`;
+        }
+        card.appendChild(contribDiv);
+
         if (gift.imageUrl) {
             const imgEl = card.querySelector(`#img-${gift.id}`);
             if (imgEl) {
@@ -728,19 +852,30 @@ function renderGifts() {
             card.appendChild(actionsDiv);
         }
 
-        const buyersDiv = document.createElement('div'); buyersDiv.className = 'gift-buyers';
-        if (gift.buyers) {
-            Object.keys(gift.buyers).forEach(buyer => {
-                const tag = document.createElement('span'); tag.className = 'buyer-tag'; tag.textContent = getDisplayName(buyer);
-                tag.style.backgroundColor = generateUserColor(buyer); buyersDiv.appendChild(tag);
-            });
-        }
-        card.appendChild(buyersDiv);
+        // Блок кнопок (Взяться / Скинуться)
+        const actionsRow = document.createElement('div');
+        actionsRow.style.display = 'flex';
+        actionsRow.style.gap = '10px';
+        actionsRow.style.marginTop = '10px';
 
-        const buyBtn = document.createElement('button'); buyBtn.className = isMeChecked ? 'btn-buy-action active' : 'btn-buy-action';
-        buyBtn.innerHTML = isMeChecked ? '✅ Вы исполняете это' : '🛍️ Взяться за исполнение';
+        const buyBtn = document.createElement('button'); 
+        buyBtn.className = isMeChecked ? 'btn-buy-action active' : 'btn-buy-action';
+        buyBtn.style.flex = '1';
+        buyBtn.innerHTML = isMeChecked ? '✅ Взял(а)' : '🛍️ Взяться';
         buyBtn.onclick = (e) => { e.stopPropagation(); toggleBuyGift(gift.id, isMeChecked); };
-        card.appendChild(buyBtn);
+
+        const chipInBtn = document.createElement('button');
+        chipInBtn.className = isMeContributor ? 'btn-buy-action active' : 'btn-buy-action';
+        chipInBtn.style.flex = '1';
+        chipInBtn.style.borderColor = '#fcc419';
+        chipInBtn.style.color = isMeContributor ? '#fff' : '#f59f00';
+        if (isMeContributor) chipInBtn.style.backgroundColor = '#fcc419';
+        chipInBtn.innerHTML = isMeContributor ? '💸 Я в доле' : '🤝 Скинуться';
+        chipInBtn.onclick = (e) => { e.stopPropagation(); toggleChipIn(gift.id, isMeContributor); };
+
+        actionsRow.appendChild(buyBtn);
+        actionsRow.appendChild(chipInBtn);
+        card.appendChild(actionsRow);
 
         DOM.gifts.container.appendChild(card);
     });
@@ -792,7 +927,6 @@ function calculateAchievements() {
     if(myGivenCount >= 5) { achievements.push({ text: '🎅 Настоящий Санта', desc: 'Исполнил 5 желаний!' }); availableTitles.push('🔱 Главный Благодетель'); }
     if(myGivenCount >= 15) { achievements.push({ text: '👼 Архангел', desc: 'Подарил кусочек рая 15 раз' }); availableTitles.push('🧞‍♂️ Джинн из лампы'); }
 
-    // Проверяем купленные титулы из магазина
     const safeUser = getSafeUserKey(currentUser);
     get(ref(db, `users/${safeUser}`)).then(snap => {
         const udata = snap.val();
@@ -893,7 +1027,6 @@ document.getElementById('add-schedule-form').addEventListener('submit', async (e
 document.getElementById('toggle-chat-btn').onclick = () => { DOM.chat.panel.classList.toggle('open'); };
 document.getElementById('close-chat-btn').onclick = () => { DOM.chat.panel.classList.remove('open'); };
 
-// Логика создания опроса
 document.getElementById('chat-poll-btn').onclick = () => { document.getElementById('poll-modal').classList.add('active'); };
 
 window.addPollOption = () => {
@@ -920,13 +1053,11 @@ document.getElementById('create-poll-form').addEventListener('submit', async (e)
     }
 });
 
-// Голосование
 window.castPollVote = async (msgId, optionIndex) => {
     const safeUser = getSafeUserKey(currentUser);
     const voteRef = ref(db, `rooms/${currentRoomId}/messages/${msgId}/options/${optionIndex}/votes/${safeUser}`);
     const snap = await get(voteRef);
     
-    // Сначала удаляем старый голос этого пользователя, если он голосовал за другой вариант
     const msgRef = ref(db, `rooms/${currentRoomId}/messages/${msgId}/options`);
     const optionsSnap = await get(msgRef);
     if(optionsSnap.exists()) {
@@ -938,7 +1069,6 @@ window.castPollVote = async (msgId, optionIndex) => {
         }
     }
     
-    // Если нажал на то же самое - голос снят, если на другое - голос добавлен
     if (!snap.exists()) {
         await set(voteRef, true);
     }
@@ -955,7 +1085,8 @@ function listenToChat() {
                 const isSpirit = msg.isSpirit === true;
                 
                 const div = document.createElement('div'); 
-                div.className = `chat-msg ${isMine ? 'mine' : ''} ${isSpirit ? 'spirit' : ''}`;
+                // Добавляем класс poll-msg если это опрос
+                div.className = `chat-msg ${isMine ? 'mine' : ''} ${isSpirit ? 'spirit' : ''} ${msg.type === 'poll' ? 'poll-msg' : ''}`;
                 
                 if (!isMine && !isSpirit) {
                     const senderAv = roomUsersAvatars[getSafeUserKey(msg.sender)] || '🦊';
@@ -972,14 +1103,32 @@ function listenToChat() {
                 }
 
                 if (msg.type === 'poll') {
-                    // Рендер Опроса
                     let totalVotes = 0;
                     if(msg.options) msg.options.forEach(opt => { if(opt.votes) totalVotes += Object.keys(opt.votes).length; });
 
+                    // Кнопка удаления опроса
+                    let closeBtnHtml = isMine || currentRoomCreator === currentUser
+                        ? `<button class="btn-icon delete-poll-btn" title="Удалить опрос" style="position:absolute; top:5px; right:5px; font-size:1rem; cursor:pointer; background:none; border:none; color:var(--text-muted);">✖</button>`
+                        : '';
+
                     const pollDiv = document.createElement('div');
                     pollDiv.className = 'poll-container';
-                    pollDiv.innerHTML = `<div class="poll-question">📊 ${escapeHTML(msg.text)}</div><div class="poll-options"></div><div class="poll-meta">Всего голосов: ${totalVotes}</div>`;
+                    pollDiv.innerHTML = `
+                        ${closeBtnHtml}
+                        <div class="poll-question">📊 ${escapeHTML(msg.text)}</div>
+                        <div class="poll-options"></div>
+                        <div class="poll-meta">Всего голосов: ${totalVotes}</div>
+                    `;
                     
+                    if (isMine || currentRoomCreator === currentUser) {
+                        const delBtn = pollDiv.querySelector('.delete-poll-btn');
+                        delBtn.onclick = async () => {
+                            if(confirm('Удалить этот опрос?')) {
+                                await remove(ref(db, `rooms/${currentRoomId}/messages/${msgId}`));
+                            }
+                        };
+                    }
+
                     const optionsCont = pollDiv.querySelector('.poll-options');
                     
                     if(msg.options) {
@@ -1005,7 +1154,6 @@ function listenToChat() {
                     }
                     div.appendChild(pollDiv);
                 } else {
-                    // Обычный текст
                     const textDiv = document.createElement('div'); textDiv.textContent = msg.text; div.appendChild(textDiv); 
                 }
 
