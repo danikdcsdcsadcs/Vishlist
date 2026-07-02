@@ -34,6 +34,9 @@ let customSections = {};
 let isHubViewActive = true; 
 let currentQuest = null;
 
+// Массив для очистки слушателей, чтобы не было дублей багов при смене комнат
+let activeListeners = [];
+
 let searchQuery = '';
 let currentSort = 'default';
 let currentUserFilter = 'all'; 
@@ -86,6 +89,13 @@ function generateUserColor(username) {
     return `hsl(${Math.abs(hash) % 360}, 60%, 45%)`;
 }
 
+function clearAllListeners() {
+    activeListeners.forEach(unsub => {
+        if (typeof unsub === 'function') unsub();
+    });
+    activeListeners = [];
+}
+
 function init() {
     document.documentElement.setAttribute('data-theme', currentTheme);
     buildEmojiPicker();
@@ -100,7 +110,6 @@ async function addKarma(amount) {
     
     await update(ref(db, `users/${safeUser}`), { karma: currentKarma });
     
-    // Моментально обновляем интерфейс для баланса
     userKarma = currentKarma;
     document.getElementById('user-karma-display').textContent = userKarma;
     document.getElementById('shop-karma-display').textContent = userKarma;
@@ -108,7 +117,7 @@ async function addKarma(amount) {
 
 function loadUserProfile() {
     const safeUser = getSafeUserKey(currentUser);
-    onValue(ref(db, `users/${safeUser}`), (snap) => {
+    const unsub = onValue(ref(db, `users/${safeUser}`), (snap) => {
         if(snap.exists()) {
             const data = snap.val();
             userAvatarEmoji = data.avatar || '🦊';
@@ -123,6 +132,7 @@ function loadUserProfile() {
             document.getElementById('shop-karma-display').textContent = userKarma;
         }
     });
+    activeListeners.push(unsub);
 }
 
 function buildEmojiPicker() {
@@ -154,12 +164,15 @@ function showLoginScreen() {
     DOM.screens.app.classList.remove('active'); DOM.screens.rooms.classList.remove('active'); DOM.screens.login.classList.add('active');
 }
 function showRoomsScreen() {
+    clearAllListeners(); // Очищаем всё перед переходом в меню
     document.body.style.background = '';
     DOM.screens.login.classList.remove('active'); DOM.screens.app.classList.remove('active'); DOM.screens.rooms.classList.add('active');
     loadUserProfile(); listenToRooms();
 }
 
 async function showAppScreen(roomId, roomName, roomCreator) {
+    clearAllListeners(); // Гарантированно очищаем слушатели других комнат
+
     currentRoomId = roomId; currentRoomName = roomName; currentRoomCreator = roomCreator;
     DOM.app.roomName.textContent = roomName;
     DOM.app.startSantaBtn.style.display = (currentUser === roomCreator) ? 'inline-block' : 'none';
@@ -204,7 +217,7 @@ document.getElementById('theme-toggle-rooms').onclick = toggleTheme; document.ge
 
 function listenToRooms() {
     const safeUser = getSafeUserKey(currentUser);
-    onValue(ref(db, `user_rooms/${safeUser}`), async (userRoomsSnap) => {
+    const unsub = onValue(ref(db, `user_rooms/${safeUser}`), async (userRoomsSnap) => {
         const userRooms = userRoomsSnap.val() || {}; const roomIds = Object.keys(userRooms);
         if (roomIds.length === 0) { roomsData = []; renderRooms(); return; }
         try {
@@ -214,6 +227,7 @@ function listenToRooms() {
             renderRooms();
         } catch (e) { }
     });
+    activeListeners.push(unsub);
 }
 
 document.getElementById('create-room-form').addEventListener('submit', async (e) => {
@@ -303,13 +317,15 @@ document.getElementById('create-custom-section-form').addEventListener('submit',
     }
 });
 
-// КВЕСТЫ: Более частая генерация
+// КВЕСТЫ: Полностью исправленная система
 async function checkDailyQuest() {
+    if (!currentRoomId) return;
     const questRef = ref(db, `rooms/${currentRoomId}/quest`);
     const snap = await get(questRef);
     let q = snap.val();
 
-    if (!q || q.done) {
+    // Если квеста нет, генерируем
+    if (!q) {
         const types = [
             { id: 'add_gifts', text: 'Добавить 2 карточки в раздел', goal: 2 },
             { id: 'add_schedule', text: 'Записать 1 дело в Расписание', goal: 1 },
@@ -320,51 +336,72 @@ async function checkDailyQuest() {
         await set(questRef, q);
     }
 
-    onValue(questRef, (snapshot) => {
+    const unsub = onValue(questRef, (snapshot) => {
         currentQuest = snapshot.val();
+        
+        const banner = document.getElementById('quest-banner');
+        const progressBar = document.getElementById('quest-progress-bar');
+        const textElem = document.getElementById('quest-text');
+
         if (currentQuest && !currentQuest.done) {
-            document.getElementById('quest-banner').style.display = 'flex';
-            document.getElementById('quest-banner').style.opacity = '1';
-            document.getElementById('quest-text').textContent = currentQuest.text;
+            banner.style.display = 'flex';
+            banner.style.opacity = '1';
+            textElem.textContent = currentQuest.text;
             document.getElementById('quest-count').textContent = `${currentQuest.progress}/${currentQuest.goal}`;
             const perc = Math.min(100, (currentQuest.progress / currentQuest.goal) * 100);
-            document.getElementById('quest-progress-bar').style.width = `${perc}%`;
+            progressBar.style.width = `${perc}%`;
             
-            document.getElementById('quest-banner').style.borderColor = '#fcc419';
-            document.getElementById('quest-progress-bar').style.background = '#fcc419';
+            banner.style.borderColor = '#fcc419';
+            progressBar.style.background = '#fcc419';
         } else if (currentQuest && currentQuest.done) {
-             document.getElementById('quest-text').textContent = "✅ Квест выполнен! +100 🪙 зачислено!";
-             document.getElementById('quest-banner').style.borderColor = 'var(--success-color)';
-             document.getElementById('quest-progress-bar').style.background = 'var(--success-color)';
-             document.getElementById('quest-progress-bar').style.width = '100%';
+             textElem.textContent = "✅ Квест выполнен! +100 🪙 зачислено!";
+             banner.style.borderColor = 'var(--success-color)';
+             progressBar.style.background = 'var(--success-color)';
+             progressBar.style.width = '100%';
              
-             // Исчезает и регенерирует новый квест
-             setTimeout(async () => {
-                 document.getElementById('quest-banner').style.opacity = '0';
-                 setTimeout(async () => {
-                     document.getElementById('quest-banner').style.display = 'none';
-                     await remove(ref(db, `rooms/${currentRoomId}/quest`));
-                     checkDailyQuest(); // Генерируем сразу новый
+             // Визуально скрываем через время. 
+             // Генерацию нового квеста берёт на себя тот, кто его завершил (ниже).
+             setTimeout(() => {
+                 banner.style.opacity = '0';
+                 setTimeout(() => {
+                     if (currentQuest && currentQuest.done) banner.style.display = 'none';
                  }, 500);
              }, 2500);
         } else {
-             document.getElementById('quest-banner').style.display = 'none';
+             banner.style.display = 'none';
         }
     });
+    
+    activeListeners.push(unsub);
 }
 
 async function updateQuestProgress(actionType) {
-    if (!currentQuest || currentQuest.done || currentQuest.type !== actionType) return;
-    const newProg = currentQuest.progress + 1;
-    let isDone = newProg >= currentQuest.goal;
-    
-    await update(ref(db, `rooms/${currentRoomId}/quest`), { progress: newProg, done: isDone });
-    
-    if (isDone) {
-        triggerTamagochiChange('luck', 15);
-        triggerTamagochiChange('kindness', 15);
-        await addKarma(100); // Баланс пополняется моментально!
-        pushSpiritMessage("🎉 Кто-то выполнил квест! Я чувствую прилив сил и дарю 100 🪙!");
+    try {
+        if (!currentQuest || currentQuest.done || currentQuest.type !== actionType) return;
+        
+        const newProg = (currentQuest.progress || 0) + 1;
+        let isDone = newProg >= currentQuest.goal;
+        
+        // Локальное обновление чтобы избежать дабл-кликов
+        currentQuest.progress = newProg;
+        currentQuest.done = isDone;
+
+        await update(ref(db, `rooms/${currentRoomId}/quest`), { progress: newProg, done: isDone });
+        
+        if (isDone) {
+            await triggerTamagochiChange('luck', 15);
+            await triggerTamagochiChange('kindness', 15);
+            await addKarma(100); 
+            pushSpiritMessage("🎉 Кто-то выполнил квест! Я чувствую прилив сил и дарю 100 🪙!");
+            
+            // Только тот, кто завершил квест, запускает удаление и создание нового (убирает баг множественных генераций)
+            setTimeout(async () => {
+                await remove(ref(db, `rooms/${currentRoomId}/quest`));
+                checkDailyQuest(); 
+            }, 3000);
+        }
+    } catch (e) {
+        console.error("Ошибка при обновлении квеста: ", e);
     }
 }
 
@@ -455,18 +492,18 @@ function calculateRoomCoinsTotal(usersData) {
 function listenToRoomData() {
     if (!currentRoomId) return;
 
-    onValue(ref(db, `rooms/${currentRoomId}/settings/background`), (snap) => {
+    const unsubBg = onValue(ref(db, `rooms/${currentRoomId}/settings/background`), (snap) => {
         const bg = snap.val();
         if (bg) document.body.style.background = bg;
         else document.body.style.background = '';
     });
 
-    onValue(ref(db, `rooms/${currentRoomId}/sectionOrder`), (snap) => {
+    const unsubSecOrder = onValue(ref(db, `rooms/${currentRoomId}/sectionOrder`), (snap) => {
         window.currentSectionOrder = snap.val() || [];
         if (!isHubViewActive) buildTabsSystem(); 
     });
 
-    onValue(ref(db, `users`), (snap) => {
+    const unsubUsers = onValue(ref(db, `users`), (snap) => {
         const users = snap.val() || {};
         roomUsersAvatars = {}; roomUsersTitles = {}; displayNames = {};
         Object.keys(users).forEach(k => { 
@@ -478,7 +515,7 @@ function listenToRoomData() {
         if (!isHubViewActive) renderGifts();
     });
 
-    onValue(ref(db, `rooms/${currentRoomId}/sections`), (snapshot) => {
+    const unsubSec = onValue(ref(db, `rooms/${currentRoomId}/sections`), (snapshot) => {
         const defaultSections = {
             wish: { name: 'Хотелки', emoji: '🎁', reqPrice: true, reqLink: true, reqDur: false },
             date: { name: 'Свидания', emoji: '🥂', reqPrice: true, reqLink: false, reqDur: true },
@@ -490,12 +527,12 @@ function listenToRoomData() {
         buildTabsSystem();
     });
 
-    onValue(ref(db, `rooms/${currentRoomId}/tamagochi`), (snapshot) => {
+    const unsubTama = onValue(ref(db, `rooms/${currentRoomId}/tamagochi`), (snapshot) => {
         const pet = snapshot.val() || { health: 50, luck: 50, kindness: 50, anger: 10, name: 'Святой Дух' };
         updateTamagochiWidget(pet);
     });
 
-    onValue(ref(db, `rooms/${currentRoomId}/gifts`), (snapshot) => {
+    const unsubGifts = onValue(ref(db, `rooms/${currentRoomId}/gifts`), (snapshot) => {
         giftsData = []; const data = snapshot.val();
         if (data) {
             Object.keys(data).forEach(key => {
@@ -513,11 +550,13 @@ function listenToRoomData() {
         if (isHubViewActive) buildTabsSystem(); else renderGifts();
     });
 
-    onValue(ref(db, `rooms/${currentRoomId}/users_count`), (snapshot) => {
+    const unsubCount = onValue(ref(db, `rooms/${currentRoomId}/users_count`), (snapshot) => {
         roomUsersList = snapshot.val() ? Object.values(snapshot.val()) : [];
         if (DOM.app.usersCount) DOM.app.usersCount.textContent = roomUsersList.length;
         updateUserFilterDropdown();
     });
+
+    activeListeners.push(unsubBg, unsubSecOrder, unsubUsers, unsubSec, unsubTama, unsubGifts, unsubCount);
 }
 
 // Построение вкладок (Разделы) с Drag & Drop
@@ -528,7 +567,6 @@ function buildTabsSystem() {
     let keys = Object.keys(customSections);
     const sortOrder = window.currentSectionOrder || [];
     
-    // Сортировка на основе сохраненного порядка (D&D)
     keys.sort((a, b) => {
         let indexA = sortOrder.indexOf(a);
         let indexB = sortOrder.indexOf(b);
@@ -558,7 +596,6 @@ function buildTabsSystem() {
             btn.className = `tab-btn ${currentTab === key ? 'active' : ''}`;
             btn.innerHTML = `<span>${customSections[key].emoji} ${customSections[key].name}</span>`;
             
-            // Настройка Drag & Drop
             btn.draggable = true;
             btn.dataset.key = key;
 
@@ -680,7 +717,7 @@ document.getElementById('add-gift-form').addEventListener('submit', async (e) =>
             linkUrl: linkUrl || null, duration: duration || null, note, createdBy: currentUser, rating, buyers: {}, contributors: {}
         });
         await triggerTamagochiChange('luck', 4); 
-        await updateQuestProgress('add_gifts'); // Проверка квеста
+        await updateQuestProgress('add_gifts'); 
         document.getElementById('add-gift-form').reset();
     }
 });
@@ -700,15 +737,13 @@ document.getElementById('btn-random-card').onclick = async () => {
         const randomCard = cards[randomIndex];
         randomCard.classList.add('highlight');
         
-        // Скроллим так, чтобы карточка была видна
         randomCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
         times++;
         if (times < maxTimes) {
-            currentInterval += (times * 5); // Эффект замедления рулетки
+            currentInterval += (times * 5);
             setTimeout(runRandomizer, currentInterval);
         } else {
-            // Остановка
             if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
             setTimeout(() => { randomCard.classList.remove('highlight'); }, 3000);
         }
@@ -723,7 +758,7 @@ async function toggleBuyGift(giftId, isCurrentlyChecked) {
         await set(buyerRef, true); 
         await triggerTamagochiChange('kindness', 10); 
         await triggerTamagochiChange('anger', -12);
-        await updateQuestProgress('buy_gift'); // Проверка квеста
+        await updateQuestProgress('buy_gift');
         if (typeof confetti === 'function') confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
     } else {
         await remove(buyerRef); await triggerTamagochiChange('anger', 8);
@@ -737,7 +772,7 @@ async function toggleChipIn(giftId, isCurrentlyContributor) {
     if (!isCurrentlyContributor) {
         await set(contribRef, true);
         await triggerTamagochiChange('kindness', 5);
-        await updateQuestProgress('buy_gift'); // Тоже засчитываем квест
+        await updateQuestProgress('buy_gift');
         if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 40 });
     } else {
         await remove(contribRef);
@@ -812,7 +847,6 @@ function renderGifts() {
             ${noteHtml}
         `;
 
-        // Отрисовка списка тех, кто "скидывается"
         const contribDiv = document.createElement('div');
         contribDiv.className = 'gift-contributors';
         if (Object.keys(contributors).length > 0) {
@@ -852,7 +886,6 @@ function renderGifts() {
             card.appendChild(actionsDiv);
         }
 
-        // Блок кнопок (Взяться / Скинуться)
         const actionsRow = document.createElement('div');
         actionsRow.style.display = 'flex';
         actionsRow.style.gap = '10px';
@@ -993,7 +1026,7 @@ document.getElementById('close-todo-btn').onclick = () => { DOM.todo.panel.class
 
 function listenToSchedule() {
     if(!currentRoomId) return;
-    onValue(ref(db, `rooms/${currentRoomId}/schedule`), (snapshot) => {
+    const unsub = onValue(ref(db, `rooms/${currentRoomId}/schedule`), (snapshot) => {
         const timeline = document.getElementById('schedule-timeline'); timeline.innerHTML = '';
         const data = snapshot.val();
         if(data) {
@@ -1013,13 +1046,14 @@ function listenToSchedule() {
             });
         } else { timeline.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">Таймлайн пуст. Запишите свои дела!</div>'; }
     });
+    activeListeners.push(unsub);
 }
 document.getElementById('add-schedule-form').addEventListener('submit', async (e) => {
     e.preventDefault(); const text = document.getElementById('task-text').value.trim(); const start = document.getElementById('task-start').value; const end = document.getElementById('task-end').value;
     if(text && start && end) { 
         await push(ref(db, `rooms/${currentRoomId}/schedule`), { user: currentUser, text, start, end }); 
         document.getElementById('task-text').value = ''; 
-        await updateQuestProgress('add_schedule'); // Проверка квеста
+        await updateQuestProgress('add_schedule'); 
     }
 });
 
@@ -1076,7 +1110,7 @@ window.castPollVote = async (msgId, optionIndex) => {
 
 function listenToChat() {
     if (!currentRoomId) return;
-    onValue(ref(db, `rooms/${currentRoomId}/messages`), (snapshot) => {
+    const unsub = onValue(ref(db, `rooms/${currentRoomId}/messages`), (snapshot) => {
         DOM.chat.messages.innerHTML = ''; const data = snapshot.val();
         if (data) {
             Object.keys(data).forEach(msgId => {
@@ -1085,7 +1119,6 @@ function listenToChat() {
                 const isSpirit = msg.isSpirit === true;
                 
                 const div = document.createElement('div'); 
-                // Добавляем класс poll-msg если это опрос
                 div.className = `chat-msg ${isMine ? 'mine' : ''} ${isSpirit ? 'spirit' : ''} ${msg.type === 'poll' ? 'poll-msg' : ''}`;
                 
                 if (!isMine && !isSpirit) {
@@ -1106,7 +1139,6 @@ function listenToChat() {
                     let totalVotes = 0;
                     if(msg.options) msg.options.forEach(opt => { if(opt.votes) totalVotes += Object.keys(opt.votes).length; });
 
-                    // Кнопка удаления опроса
                     let closeBtnHtml = isMine || currentRoomCreator === currentUser
                         ? `<button class="btn-icon delete-poll-btn" title="Удалить опрос" style="position:absolute; top:5px; right:5px; font-size:1rem; cursor:pointer; background:none; border:none; color:var(--text-muted);">✖</button>`
                         : '';
@@ -1122,56 +1154,60 @@ function listenToChat() {
                     
                     if (isMine || currentRoomCreator === currentUser) {
                         const delBtn = pollDiv.querySelector('.delete-poll-btn');
-                        delBtn.onclick = async () => {
-                            if(confirm('Удалить этот опрос?')) {
-                                await remove(ref(db, `rooms/${currentRoomId}/messages/${msgId}`));
-                            }
-                        };
+                        if(delBtn) delBtn.onclick = async () => { if(confirm('Удалить опрос?')) await remove(ref(db, `rooms/${currentRoomId}/messages/${msgId}`)); };
                     }
 
-                    const optionsCont = pollDiv.querySelector('.poll-options');
-                    
-                    if(msg.options) {
+                    const optsContainer = pollDiv.querySelector('.poll-options');
+                    if (msg.options) {
                         msg.options.forEach((opt, idx) => {
-                            const optVotes = opt.votes ? Object.keys(opt.votes).length : 0;
-                            const perc = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
+                            const votesCount = opt.votes ? Object.keys(opt.votes).length : 0;
+                            const perc = totalVotes > 0 ? (votesCount / totalVotes) * 100 : 0;
                             const hasMyVote = opt.votes && opt.votes[getSafeUserKey(currentUser)];
                             
                             const optRow = document.createElement('div');
                             optRow.className = 'poll-option-row';
-                            if (hasMyVote) optRow.style.borderColor = 'var(--primary-color)';
+                            if(hasMyVote) optRow.style.borderColor = 'var(--primary-color)';
                             
                             optRow.innerHTML = `
                                 <div class="poll-option-fill" style="width: ${perc}%"></div>
                                 <div class="poll-option-text">
-                                    <span>${hasMyVote ? '✅ ' : ''}${escapeHTML(opt.text)}</span>
-                                    <span>${perc}%</span>
+                                    <span>${escapeHTML(opt.text)}</span>
+                                    <span>${Math.round(perc)}% (${votesCount})</span>
                                 </div>
                             `;
                             optRow.onclick = () => castPollVote(msgId, idx);
-                            optionsCont.appendChild(optRow);
+                            optsContainer.appendChild(optRow);
                         });
                     }
                     div.appendChild(pollDiv);
                 } else {
-                    const textDiv = document.createElement('div'); textDiv.textContent = msg.text; div.appendChild(textDiv); 
+                    const textDiv = document.createElement('div');
+                    textDiv.innerHTML = escapeHTML(msg.text);
+                    div.appendChild(textDiv);
+                    
+                    if (isMine || currentRoomCreator === currentUser) {
+                        const delBtn = document.createElement('button');
+                        delBtn.innerHTML = '✖';
+                        delBtn.className = 'btn-icon delete-msg-btn';
+                        delBtn.style.cssText = 'position:absolute; right:-25px; top:50%; transform:translateY(-50%); font-size:0.8rem; cursor:pointer; opacity:0; color:#fa5252; transition:0.2s; background:none;';
+                        div.style.position = 'relative';
+                        div.appendChild(delBtn);
+                        div.onmouseenter = () => delBtn.style.opacity = '1';
+                        div.onmouseleave = () => delBtn.style.opacity = '0';
+                        delBtn.onclick = async () => { if(confirm('Удалить сообщение?')) await remove(ref(db, `rooms/${currentRoomId}/messages/${msgId}`)); };
+                    }
                 }
-
                 DOM.chat.messages.appendChild(div);
             });
             DOM.chat.messages.scrollTop = DOM.chat.messages.scrollHeight;
-        } else { DOM.chat.messages.innerHTML = '<div style="text-align:center; color:gray; font-size: 0.8rem;">Нет сообщений.</div>'; }
+        }
     });
+    activeListeners.push(unsub);
 }
 
 document.getElementById('chat-form').addEventListener('submit', async (e) => {
     e.preventDefault(); const text = DOM.chat.input.value.trim();
-    if (text) { 
-        try { 
-            await push(ref(db, `rooms/${currentRoomId}/messages`), { sender: currentUser, text: text, timestamp: Date.now() }); 
-            DOM.chat.input.value = ''; 
-        } catch (error) { console.error("Ошибка:", error); } 
-    }
+    if (text && currentRoomId) { await push(ref(db, `rooms/${currentRoomId}/messages`), { sender: currentUser, text: text, timestamp: Date.now() }); DOM.chat.input.value = ''; }
 });
 
-window.onload = init;
+init();
