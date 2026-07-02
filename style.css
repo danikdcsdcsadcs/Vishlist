@@ -37,7 +37,7 @@ body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color
 .avatar-emoji-display { font-size: 1.8rem; width: 44px; height: 44px; background: var(--bg-main); border: 2px solid var(--primary-color); display: flex; justify-content: center; align-items: center; border-radius: 50%; }
 .avatar-mini { font-size: 1.1rem; }
 .title-badge { font-size: 0.75rem; background: var(--primary-color); color: white; padding: 2px 6px; border-radius: 8px; margin-left: 4px; }
-.karma-badge { font-size: 0.8rem; background: #fcc419; color: #000; padding: 2px 8px; border-radius: 8px; margin-left: 4px; font-weight: bold; }
+.karma-badge { font-size: 0.8rem; background: #fcc419; color: #000; padding: 2px 8px; border-radius: 8px; margin-left: 4px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
 
 input[type="text"], input[type="password"], input[type="number"], input[type="url"], input[type="time"], select, .sort-select {
     width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-card); color: var(--text-main); font-size: 1rem; font-family: inherit;
@@ -58,7 +58,6 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 .room-header-flex { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; text-align: left; max-width: 1100px; margin: 0 auto; }
 .room-info-box { flex: 1; min-width: 280px; }
 
-/* Виджет Тамагочи и Квестов */
 .tamagochi-card { background: var(--bg-main); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 15px; min-width: 280px; width: 100%; max-width: 340px; box-shadow: var(--shadow); }
 .tamagochi-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .tamagochi-pet { font-size: 2.2rem; }
@@ -71,39 +70,37 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 
 .quest-banner { background: linear-gradient(90deg, #fff3bf 0%, #ffec99 100%); color: #495057; border-radius: 12px; padding: 12px 20px; margin: 15px auto; max-width: 1100px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; border: 1px solid #fcc419; }
 [data-theme="dark"] .quest-banner { background: linear-gradient(90deg, #4d3a00 0%, #332700 100%); color: #fff; border-color: #fcc419; }
-.quest-title { font-weight: 600; font-size: 0.95rem; }
-.quest-progress { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; font-weight: bold; }
+.quest-title { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 5px; }
+.quest-progress { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; font-weight: bold; flex: 1; justify-content: flex-end; }
 .quest-progress .bar { width: 100px; height: 10px; background: rgba(0,0,0,0.1); border-radius: 5px; overflow: hidden; }
 .quest-progress .progress { height: 100%; background: #fcc419; transition: width 0.3s; }
 
-/* Боковые панели */
-.sidebar-panel { width: 320px; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); display: none; flex-direction: column; height: calc(100vh - 100px); position: sticky; top: 20px; overflow: hidden; }
+.sidebar-panel { width: 320px; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); display: none; flex-direction: column; height: calc(100vh - 100px); position: sticky; top: 20px; overflow: hidden; z-index: 50; }
 .sidebar-panel.open { display: flex; }
 .sidebar-header { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
 .sidebar-content { flex: 1; overflow-y: auto; padding: 1rem; }
 
-/* Опросы */
-.poll-container { background: var(--bg-main); margin: 10px; padding: 10px; border-radius: 12px; border: 1px solid var(--border-color); position: relative; }
-.poll-question { font-weight: bold; font-size: 0.9rem; margin-bottom: 8px; }
-.poll-options { display: flex; flex-direction: column; gap: 6px; }
-.poll-option-row { position: relative; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; cursor: pointer; }
-.poll-option-fill { position: absolute; top: 0; left: 0; height: 100%; background: rgba(77, 173, 247, 0.2); transition: width 0.3s ease; z-index: 1; }
-.poll-option-text { position: relative; z-index: 2; padding: 6px 10px; font-size: 0.85rem; display: flex; justify-content: space-between; }
+/* Дизайн опросов (Polls) в чате */
+.poll-container { background: var(--bg-card); margin: 5px 0; padding: 12px; border-radius: 12px; border: 1px solid var(--primary-color); box-shadow: var(--shadow); }
+.poll-question { font-weight: 700; font-size: 0.95rem; margin-bottom: 10px; color: var(--text-main); }
+.poll-options { display: flex; flex-direction: column; gap: 8px; }
+.poll-option-row { position: relative; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.2s; }
+.poll-option-row:hover { border-color: var(--primary-color); }
+.poll-option-fill { position: absolute; top: 0; left: 0; height: 100%; background: rgba(77, 173, 247, 0.25); transition: width 0.4s ease; z-index: 1; }
+.poll-option-text { position: relative; z-index: 2; padding: 8px 12px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
+.poll-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: right; }
 
-/* Чат */
 .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
 .chat-msg { background: var(--bg-main); padding: 0.75rem; border-radius: 12px; border-bottom-left-radius: 2px; max-width: 90%; align-self: flex-start; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; }
 .chat-msg.mine { background: #e7f5ff; border-bottom-left-radius: 12px; border-bottom-right-radius: 2px; align-self: flex-end; }
-.chat-msg.spirit { background: #fff3bf; border-left: 4px solid #fcc419; max-width: 100%; align-self: center; text-align: center; font-style: italic; font-size: 0.85rem; }
+.chat-msg.spirit { background: #fff3bf; border-left: 4px solid #fcc419; max-width: 100%; align-self: center; text-align: center; font-style: italic; font-size: 0.85rem; border-radius: 8px; }
 [data-theme="dark"] .chat-msg.mine { background: #2c4a6b; }
 [data-theme="dark"] .chat-msg.spirit { background: #4d3a00; color: #fff; }
 .chat-msg-author span { cursor: pointer; }
 .chat-msg-author span:hover { text-decoration: underline; }
-.chat-input-area { display: flex; padding: 1rem; border-top: 1px solid var(--border-color); gap: 0.5rem; background: var(--bg-card); }
-.chat-input-area input { margin-bottom: 0; }
-.chat-input-area button { padding: 0 1.2rem; }
+.chat-input-area { display: flex; padding: 1rem; border-top: 1px solid var(--border-color); gap: 0.5rem; background: var(--bg-card); align-items: center; }
+.chat-input-area input { margin-bottom: 0; flex: 1; }
 
-/* Список Дел (Расписание) */
 .schedule-section { border: none; }
 .schedule-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
 .time-inputs { display: flex; align-items: center; gap: 5px; }
@@ -114,7 +111,6 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 .task-body { flex: 1; display:flex; justify-content: space-between; align-items:center; }
 .del-task { cursor: pointer; color: #fa5252; font-weight: bold; margin-left: 10px; }
 
-/* Разделы Хаба */
 .sections-hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; width: 100%; margin-bottom: 20px; }
 .section-hub-block { background: var(--bg-card); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 25px 15px; text-align: center; cursor: pointer; transition: var(--transition); box-shadow: var(--shadow); }
 .section-hub-block:hover { border-color: var(--primary-color); transform: translateY(-4px); }
@@ -124,7 +120,6 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 .section-cost-banner { background: var(--bg-card); border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; text-align: center; margin-bottom: 15px; font-size: 0.9rem; font-weight: 600; }
 .section-cost-banner span { color: var(--primary-color); font-weight: bold; }
 
-/* Табы и Фильтры */
 .tabs-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap; }
 .tab-btn { display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 2px solid var(--border-color); color: var(--text-muted); padding: 0.6rem 1.2rem; border-radius: 20px; font-weight: 600; cursor: pointer; transition: var(--transition); font-size: 0.95rem; }
 .tab-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
@@ -147,16 +142,13 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 .gifts-section { flex: 1; width: 100%; }
 .gifts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
 
-/* Карточки */
 .room-card { background: var(--bg-card); padding: 24px 20px; border-radius: var(--radius); border: 2px solid var(--border-color); cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: relative; }
 .room-card:hover { border-color: var(--primary-color); transform: translateY(-4px); box-shadow: 0 8px 20px rgba(77, 173, 247, 0.2); }
 
 .gift-card { background: var(--bg-card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); position: relative; border: 2px solid transparent; transition: var(--transition); display: flex; flex-direction: column; gap: 12px; }
 .gift-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
-.gift-card.highlight { border-color: #fcc419; box-shadow: 0 0 15px rgba(252, 196, 25, 0.5); transform: scale(1.02); }
 .gift-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
 .gift-creator { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); }
-
 .gift-image-container { width: 100%; height: 200px; border-radius: 12px; overflow: hidden; background: var(--bg-main); cursor: zoom-in; }
 .gift-image { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
 .gift-image:hover { opacity: 0.9; }
@@ -165,19 +157,10 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 .gift-note, .gift-meta-field { font-size: 0.85rem; color: var(--text-muted); background: var(--bg-main); padding: 6px 10px; border-radius: 6px; }
 .gift-meta-field a { color: var(--primary-color); font-weight: 600; text-decoration: none; }
 
-/* Краудфандинг Бар */
-.funding-progress { background: var(--bg-main); border-radius: 8px; overflow: hidden; margin-top: 5px; position: relative; height: 16px; border: 1px solid var(--border-color); }
-.funding-bar { background: var(--success-color); height: 100%; transition: width 0.3s; }
-.funding-text { position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-size: 0.7rem; font-weight: bold; line-height: 16px; color: #fff; text-shadow: 0 0 2px #000; }
-
 .buyer-tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; color: white; margin: 0.2rem; font-weight: 600; }
-.gift-actions-row { display: flex; gap: 10px; margin-top: auto; }
-.btn-buy-action { flex: 1; padding: 0.6rem; border-radius: 10px; border: 2px solid var(--primary-color); background: transparent; color: var(--primary-color); font-weight: 600; cursor: pointer; transition: var(--transition); font-size: 0.85rem;}
+.btn-buy-action { width: 100%; padding: 0.6rem; border-radius: 10px; border: 2px solid var(--primary-color); background: transparent; color: var(--primary-color); font-weight: 600; cursor: pointer; transition: var(--transition); font-size: 0.85rem;}
 .btn-buy-action:hover { background: rgba(77, 173, 247, 0.1); }
 .btn-buy-action.active { background: var(--success-color); border-color: var(--success-color); color: white; }
-.btn-fund-action { flex: 1; padding: 0.6rem; border-radius: 10px; border: 2px solid #fcc419; background: transparent; color: #d4a000; font-weight: 600; cursor: pointer; transition: var(--transition); font-size: 0.85rem;}
-.btn-fund-action:hover { background: rgba(252, 196, 25, 0.1); }
-[data-theme="dark"] .btn-fund-action { color: #fcc419; }
 
 .action-buttons { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 10; }
 .btn-delete, .btn-edit-card { background: rgba(255, 255, 255, 0.95); border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.15); transition: 0.2s; color: var(--text-main); }
@@ -185,12 +168,21 @@ input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 .btn-edit-card:hover { background: #e7f5ff; color: var(--primary-color); }
 [data-theme="dark"] .btn-delete, [data-theme="dark"] .btn-edit-card { background: rgba(0,0,0,0.6); color: white; }
 
-/* Модалки и Лайтбокс */
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; padding: 10px; }
 .modal.active { display: flex; }
 .modal-content { background: var(--bg-card); padding: 25px; border-radius: var(--radius); width: 100%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.modal-content input { margin-bottom: 10px; }
+
+/* Дизайн Профиля */
+.emoji-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 8px; max-height: 140px; overflow-y: auto; padding: 5px; }
+.emoji-picker-item { font-size: 1.6rem; text-align: center; cursor: pointer; padding: 5px; border-radius: 8px; transition: background 0.2s; border: 1px solid transparent; }
+.emoji-picker-item:hover { background: var(--bg-main); border-color: var(--primary-color); }
+.titles-list { display: flex; flex-direction: column; gap: 8px; }
+.titles-list label { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; font-weight: 500; }
+.titles-list label:hover { border-color: var(--primary-color); }
+.titles-list input[type="radio"] { width: auto; accent-color: var(--primary-color); }
+.achievements-container { display: flex; flex-direction: column; gap: 8px; }
+.achievement-item { background: var(--bg-main); padding: 10px; border-radius: 8px; border-left: 4px solid #fcc419; font-size: 0.85rem; }
 
 .lightbox { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 99999; padding: 20px; cursor: zoom-out; }
 .lightbox.active { display: flex !important; }
